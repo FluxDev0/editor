@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profi Code-Editor</title>
+    
+    <!-- CodeMirror CSS Basis & Theme (Dunkel) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Verstecktes Feld für den Datei-Upload -->
+    <input type="file" id="file-upload" accept=".html" style="display: none;">
+
+    <div class="toolbar">
+        <button onclick="downloadCode()">💾 Code herunterladen (.html)</button>
+        <button onclick="document.getElementById('file-upload').click()">📂 Code hochladen (.html)</button>
+    </div>
+
+    <!-- Die Eingabefelder -->
+    <div class="editors">
+        <div class="editor-container">
+            <label>HTML</label>
+            <textarea id="html-code"></textarea>
+        </div>
+        <div class="editor-container">
+            <label>CSS</label>
+            <textarea id="css-code"></textarea>
+        </div>
+        <div class="editor-container">
+            <label>JavaScript</label>
+            <textarea id="js-code"></textarea>
+        </div>
+    </div>
+
+    <!-- Das Vorschaufenster -->
+    <iframe id="preview"></iframe>
+
+    <!-- CodeMirror JS Basis & Programmiersprachen-Regeln (Modes) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+
+    <!-- Deine App-Logik -->
+    <script src="script.js"></script>
+</body>
+</html>

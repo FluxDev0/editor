@@ -4,14 +4,6 @@ body {
     font-family: "Montserrat", 'Segoe UI';
 }
 
-.blue {
-
-}
-
-.red {
-
-}
-
-.green {
-
+a:-webkit-any-link {
+    color: #6ecfc7;
 }
