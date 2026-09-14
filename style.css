@@ -1,9 +1,33 @@
 body {
-    background-color: #10111f;
+    background-color: #1b1c2b;
     color: #e6f3f2;
     font-family: "Montserrat", 'Segoe UI';
+    font-size: 16px;
 }
 
 a:-webkit-any-link {
     color: #6ecfc7;
+}
+
+.code {
+    font-size: 18px;
+    border: #6a6c8b solid 2px;
+    border-radius: 5px;
+    padding: 2px;
+    background-color: #2e2f44;
+    width: 100%;
+    height: 100%;
+    field-sizing: content;
+    color: #e6f3f2;
+}
+
+span.text {
+    margin: 5px;
+}
+
+iframe {
+    border: #6a6c8b solid 2px;
+    border-radius: 5px;
+    width: 100%;
+    background: white; 
 }
