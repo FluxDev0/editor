@@ -11,7 +11,7 @@ const jsEditor = CodeMirror.fromTextArea(document.getElementById('js-code'), { .
 
 // Startwerte setzen
 htmlEditor.setValue("<h1>Hallo Programmierer!</h1>\n<p>Dieser Editor nutzt jetzt CodeMirror.</p>");
-cssEditor.setValue("h1 {\n  color: #4CAF50;\n}");
+cssEditor.setValue("h1 {\n  color: red;\n}");
 jsEditor.setValue("console.log('Editor geladen!');");
 
 // 2. VORSCHAU AKTUALISIEREN

@@ -1,4 +1,4 @@
-let textNumber = 0;
+let textNumber = -1;
 
 function nextText() {
     textNumber++;
@@ -9,6 +9,8 @@ function nextText() {
         }
     });
 }
+
+nextText();
 
 function lastText() {
     textNumber--;

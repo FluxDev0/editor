@@ -1,4 +1,12 @@
-body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; background: #1e1e1e; }
+body { 
+    margin: 0; 
+    padding: 0; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    font-family: Consolas, monospace; 
+    background: #1e1e1e; 
+}
         
 /* Toolbar für Buttons */
 .toolbar { 
@@ -39,7 +47,7 @@ body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100
     color: #aaa; 
     padding: 5px 10px; 
     font-size: 12px; 
-    font-family: monospace; 
+    font-family: Consolas, monospace; 
     text-transform: uppercase; 
 }
         
@@ -47,7 +55,7 @@ body { margin: 0; padding: 0; display: flex; flex-direction: column; height: 100
 .CodeMirror { 
     height: 100% !important;
     font-size: 15px; 
-    font-family: 'Courier New', Courier, monospace; 
+    font-family: Consolas, monospace; 
 }
         
 /* Vorschaufenster */
