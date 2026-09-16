@@ -9,6 +9,14 @@ a:-webkit-any-link {
     color: #6ecfc7;
 }
 
+.link {
+    color: #6ecfc7;
+    cursor: pointer;
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+    text-decoration-thickness: auto;
+}
+
 .code {
     font-size: 18px;
     border: #6a6c8b solid 2px;
@@ -21,7 +29,7 @@ a:-webkit-any-link {
     color: #e6f3f2;
 }
 
-.text {
+.text, .wikipage {
     margin: 5px;
 }
 
