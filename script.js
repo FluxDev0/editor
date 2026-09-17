@@ -28,12 +28,3 @@ document.querySelectorAll("textarea.code").forEach((element) => {
         document.querySelector(`iframe[data-p="${element.dataset.p}"]`).srcdoc = element.value;
     });
 });
-
-function openWikiPage(pagename) {
-    document.querySelectorAll("body > .wikipage").forEach((element) => {
-        element.style = "display: none;";
-        if (element.dataset.name == pagename) {
-            element.style = "display: block;";
-        }
-    });
-}
