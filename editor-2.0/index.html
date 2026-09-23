@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Besser als Windows-Editor</title>
+
+    <!-- CodeMirror 5 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- TOP TOOLBAR -->
+    <header class="toolbar">
+        <div class="toolbar-group">
+            <span style="font-weight: bold; font-family: var(--font-mono); color: var(--accent); margin-right: 10px;">
+                <i class="fa-solid fa-code"></i> Informatik IDE
+            </span>
+            <button class="btn" onclick="document.getElementById('file-upload').click()" title="HTML Hochladen">
+                <i class="fa-solid fa-folder-open"></i> .html Hochladen
+            </button>
+            <input type="file" id="file-upload" accept=".html" style="display: none;">
+            
+            <button class="btn" id="btn-download-html" title="Als HTML herunterladen">
+                <i class="fa-brands fa-html5"></i> .html Herunterladen
+            </button>
+            <button class="btn" id="btn-download-txt" title="Als TXT herunterladen">
+                <i class="fa-solid fa-file-lines"></i> .txt Herunterladen
+            </button>
+
+            <div class="separator"></div>
+
+            <!-- Layout Controls -->
+            <button class="btn" id="layout-left" title="Editor Links"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn" id="layout-right" title="Editor Rechts"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn" id="layout-top" title="Editor Oben"><i class="fa-solid fa-arrow-up"></i></button>
+            <button class="btn" id="layout-bottom" title="Editor Unten"><i class="fa-solid fa-arrow-down"></i></button>
+        </div>
+
+        <div class="toolbar-group">
+            <!-- Yjs Collaboration Controls -->
+            <i class="fa-solid fa-globe" style="color: var(--text-muted)"></i>
+            <input type="text" id="room-name" placeholder="Raum Name..." value="mein-raum-1">
+            <input type="password" id="room-password" placeholder="Passwort...">
+            <button class="btn success" id="btn-join">
+                <i class="fa-solid fa-plug"></i> Verbinden
+            </button>
+            <span id="collab-status" style="font-size: 12px; color: var(--warning); display: none;">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Online
+            </span>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="workspace layout-left" id="workspace">
+        
+        <!-- Editor Panel -->
+        <div class="editor-panel" id="editor-panel">
+            
+            <div class="editor-box" id="box-html">
+                <div class="editor-header" onclick="toggleEditor('box-html')">
+                    <span><i class="fa-brands fa-html5" style="color: #e34f26"></i> HTML</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div class="cm-wrapper">
+                    <textarea id="code-html"></textarea>
+                </div>
+            </div>
+
+            <div class="editor-box collapsed" id="box-css">
+                <div class="editor-header" onclick="toggleEditor('box-css')">
+                    <span><i class="fa-brands fa-css3-alt" style="color: #264de4"></i> CSS</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div class="cm-wrapper">
+                    <textarea id="code-css"></textarea>
+                </div>
+            </div>
+
+            <div class="editor-box collapsed" id="box-js">
+                <div class="editor-header" onclick="toggleEditor('box-js')">
+                    <span><i class="fa-brands fa-js" style="color: #f7df1e"></i> JS</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div class="cm-wrapper">
+                    <textarea id="code-js"></textarea>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Draggable Splitter -->
+        <div class="splitter" id="splitter"></div>
+
+        <!-- Preview Panel -->
+        <div class="preview-panel" id="preview-panel">
+            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+            
+            <!-- Console -->
+            <div class="console-panel collapsed" id="console-panel">
+                <div class="console-header" onclick="toggleConsole(event)">
+                    <span><i class="fa-solid fa-terminal"></i> Konsole</span>
+                    <div class="console-actions">
+                        <button onclick="clearConsole(event)" title="Leeren"><i class="fa-solid fa-ban"></i></button>
+                        <i class="fa-solid fa-chevron-down" style="pointer-events: none;"></i>
+                    </div>
+                </div>
+                <div class="console-output" id="console-output"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- CodeMirror 5 Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+
+    <!-- UI Interaction Scripts (Collapsing & Layout & Downloading) -->
+    <script src="script.js"></script>
+
+    <!-- ESM Module for Yjs and Editor Logic -->
+    <script src="module.js" type="module"></script>
+</body>
+</html>

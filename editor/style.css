@@ -16,6 +16,7 @@ body {
     display: flex; 
     gap: 10px; 
 }
+
 .toolbar button { 
     background: #4CAF50; 
     color: white; 
@@ -25,6 +26,7 @@ body {
     font-size: 14px; 
     border-radius: 4px; 
 }
+
 .toolbar button:hover { 
     background: #45a049; 
 }
@@ -35,6 +37,7 @@ body {
     height: 50%; 
     width: 100%; 
 }
+
 .editor-container { 
     flex: 1; 
     display: flex; 
@@ -42,6 +45,7 @@ body {
     border-right: 1px solid #000; 
     overflow: hidden; 
 }
+
 .editor-container label { 
     background: #111; 
     color: #aaa; 
@@ -77,6 +81,11 @@ iframe {
 
 .cm-s-monokai span.cm-tag {
     color: #f92672;
+}
+
+.cm-s-monokai span.cm-error {
+    background: #f92672;
+    color: #dae5e6;
 }
 
 .cm-s-monokai span.cm-attribute, .cm-s-monokai span.cm-property {
