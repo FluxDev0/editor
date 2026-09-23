@@ -95,6 +95,20 @@ input[type="text"]:focus, input[type="password"]:focus {
     border-color: var(--accent);
 }
 
+select#preset {
+    background-color: var(--bg-header);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    width: 120px;
+    outline: none;
+}
+select#preset:focus {
+    border-color: var(--accent);
+}
+
 .separator {
     width: 1px;
     height: 24px;
