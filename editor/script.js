@@ -10,8 +10,23 @@ const cssEditor = CodeMirror.fromTextArea(document.getElementById('css-code'), {
 const jsEditor = CodeMirror.fromTextArea(document.getElementById('js-code'), { ...editorConfig, mode: "javascript" });
 
 // Startwerte setzen
-htmlEditor.setValue("<h1>Hallo Programmierer!</h1>\n<p>Dieser Editor nutzt jetzt CodeMirror.</p>");
-cssEditor.setValue("h1 {\n  color: red;\n}");
+htmlEditor.setValue(`<h1>Hallo Programmierer!</h1>
+<p>Dieser Editor ist besser als der Windows Editor</p>
+<p>
+    Weil wir in Informatik sind darf ich hier leider keine schlimmen
+    oder andersweitig lustigen sachen reintun weil ich sonst
+    ein paar Probleme kriege.
+</p>
+`);
+cssEditor.setValue(`body { 
+    margin: 0; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    font-family: sans-serif; 
+    background: #1e1e1e; 
+    color: white;
+}`);
 jsEditor.setValue("console.log('Editor geladen!');");
 
 // 2. VORSCHAU AKTUALISIEREN
