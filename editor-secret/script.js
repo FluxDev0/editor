@@ -113,4 +113,8 @@ window.addEventListener('message', (e) => {
     }
 });
 
-setLayout("top");
+document.addEventListener("DOMContentLoaded", () => {
+    setLayout("top");
+    toggleEditor("box-css");
+    toggleEditor("box-js");
+})

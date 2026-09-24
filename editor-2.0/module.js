@@ -1,6 +1,43 @@
 import * as Y from 'https://esm.sh/yjs';
 import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
-import { CodemirrorBinding } from 'https://esm.sh/y-codemirror';
+    
+// CodeMirror 6 Core & HTML Language Extension
+import { EditorView, basicSetup, closeBrackets } from 'https://esm.sh/codemirror';
+import { closeBrackets } from 'https://esm.sh/@codemirror/autocomplete';
+import { html } from 'https://esm.sh/@codemirror/lang-html';
+
+// Yjs Binding für CodeMirror 6
+import { yCollab } from 'https://esm.sh/y-codemirror.next';
+
+// 1. Yjs Dokument & WebRTC Provider einrichten
+const ydoc = new Y.Doc();
+const provider = new WebrtcProvider('mein-cm6-html-raum', ydoc);
+const yText = ydoc.getText('codemirror');
+
+// 2. CodeMirror 6 Editor erstellen
+const view = new EditorView({
+    doc: `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        h1 { color: #2b6cb0; }
+    </style>
+</head>
+<body>
+    <h1>Hallo CodeMirror 6</h1>
+    <script>
+        console.log("JS wird automatisch hervorgehoben!");
+    <\/script>
+</body>
+</html>`,
+  extensions: [
+    basicSetup,                         // Standard-Features (Zeilennummern, Undo/Redo, etc.)
+    html(),                             // HTML + CSS + JS Syntax Highlighting
+    yCollab(yText, provider.awareness),  // Echtzeit-Synchronisation via Yjs
+    closeBrackets()
+  ],
+  parent: document.getElementById('#box-html .cm-wrapper')
+});
 
 // Initialize CodeMirror Editors
 const cmConfig = {
@@ -11,95 +48,29 @@ const cmConfig = {
 
 let preset = "none";
 
-const presets = {
-    "none": {
-        "html":"",
-        "css":"",
-        "js":""
-    },
-    "special": {
-        "html":`<div class="background" id="animated-background">
-  <div class="blob" style="--anim1dur: 40s; --anim1del: -0s; --anim2dur: 40s; --anim2del: -15s;"></div>
-  <div class="blob" style="--anim1dur: 40s; --anim1del: -5s; --anim2dur: 40s; --anim2del: -10s;"></div>
-  <div class="blob" style="--anim1dur: 40s; --anim1del: -10s; --anim2dur: 40s; --anim2del: -5s;"></div>
-  <div class="blob" style="--anim1dur: 40s; --anim1del: -15s; --anim2dur: 40s; --anim2del: -0s;"></div>
-</div>`,
-        "css":`.background {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  filter: blur(150px);
-}
-
-.blob {
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  content: attr(data-test);
-  animation:
-   var(--anim1, move1) var(--anim1dur, 25s) infinite alternate cubic-bezier(.3, .1, .7, .9) var(--anim1del, 0s),
-   var(--anim2, colors) var(--anim2dur, 20s) infinite alternate cubic-bezier(.65, 0, .35, 1) var(--anim2del, 0s);
-}
-
-@keyframes move1 {
-  000% { transform: translate(-20vw, -30vh); }
-  010% { transform: translate(0vw, -25vh); }
-  020% { transform: translate(15vw, -30vh); }
-  030% { transform: translate(20vw, -5vh); }
-  040% { transform: translate(-10vw, 5vh); }
-  050% { transform: translate(-20vw, 15vh); }
-  060% { transform: translate(-40vw, 0vh); }
-  070% { transform: translate(-15vw, 20vh); }
-  080% { transform: translate(15vw, -7vh); }
-  090% { transform: translate(30vw, 0vh); }
-  100% { transform: translate(5vw, -20vh); }
-}
-
-@keyframes move2 {
-  000% { transform: translate(-20vw, -30vh); }
-  005% { transform: translate(0vw, -25vh); }
-  010% { transform: translate(15vw, -30vh); }
-  015% { transform: translate(20vw, -5vh); }
-  020% { transform: translate(-10vw, 5vh); }
-  025% { transform: translate(-20vw, 15vh); }
-  030% { transform: translate(-40vw, 0vh); }
-  035% { transform: translate(-15vw, 20vh); }
-  040% { transform: translate(15vw, -7vh); }
-  045% { transform: translate(30vw, 0vh); }
-  050% { transform: translate(5vw, -20vh); }
-  055% { transform: translate(-20vw, -30vh); }
-  060% { transform: translate(0vw, -25vh); }
-  065% { transform: translate(15vw, -30vh); }
-  070% { transform: translate(20vw, -5vh); }
-  075% { transform: translate(-10vw, 5vh); }
-  080% { transform: translate(-20vw, 15vh); }
-  085% { transform: translate(-40vw, 0vh); }
-  090% { transform: translate(-15vw, 20vh); }
-  095% { transform: translate(15vw, -7vh); }
-  100% { transform: translate(30vw, 0vh); }
-}
-
-.rainbow {
-  animation: colors var(--clength) infinite alternate linear;
-  animation-delay: var(--d);
-}
-
-@keyframes colors {
-  0% { background: #df380e;}
-  20% { background: #df6c0e;}
-  40% { background: #f0cd08; }
-  60% { background: #14bd1d; }
-  80% { background: #0c9dc9; }
-  100% { background: #b510f7; }
-}`,
-        "js":""
-    }
-};
-
-const htmlEditor = CodeMirror.fromTextArea(document.getElementById('code-html'), { ...cmConfig, mode: 'htmlmixed' });
+const htmlEditor = new EditorView({
+    doc: `<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        h1 { color: #2b6cb0; }
+    </style>
+</head>
+<body>
+    <h1>Hallo CodeMirror 6</h1>
+    <script>
+        console.log("JS wird automatisch hervorgehoben!");
+    <\/script>
+</body>
+</html>`,
+  extensions: [
+    basicSetup,                         // Standard-Features (Zeilennummern, Undo/Redo, etc.)
+    html(),                             // HTML + CSS + JS Syntax Highlighting
+    yCollab(yText, provider.awareness),  // Echtzeit-Synchronisation via Yjs
+    closeBrackets()
+  ],
+  parent: document.getElementById('#box-html .cm-wrapper')
+});
 
 // Default content
 htmlEditor.setValue(`<h1>Hallo Programmierer!</h1>
@@ -193,7 +164,7 @@ document.getElementById('btn-join').onclick = () => {
     provider = new WebrtcProvider(roomName, ydoc, { password: password || undefined });
 
     // Define shared text types
-    const yHtml = ydoc.getText('html');
+    const yHtml = ydoc.getText('codemirror');
 
     // Bind CodeMirror instances
     new CodemirrorBinding(yHtml, htmlEditor, provider.awareness);
