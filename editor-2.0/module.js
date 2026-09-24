@@ -2,49 +2,13 @@ import * as Y from 'https://esm.sh/yjs';
 import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
     
 // CodeMirror 6 Core & HTML Language Extension
-import { EditorView, basicSetup, closeBrackets } from 'https://esm.sh/codemirror';
+import { EditorView, basicSetup } from 'https://esm.sh/codemirror';
 import { closeBrackets } from 'https://esm.sh/@codemirror/autocomplete';
 import { html } from 'https://esm.sh/@codemirror/lang-html';
+import { monokai } from 'https://esm.sh/@uiw/codemirror-theme-monokai';
 
 // Yjs Binding für CodeMirror 6
 import { yCollab } from 'https://esm.sh/y-codemirror.next';
-
-// 1. Yjs Dokument & WebRTC Provider einrichten
-const ydoc = new Y.Doc();
-const provider = new WebrtcProvider('mein-cm6-html-raum', ydoc);
-const yText = ydoc.getText('codemirror');
-
-// 2. CodeMirror 6 Editor erstellen
-const view = new EditorView({
-    doc: `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        h1 { color: #2b6cb0; }
-    </style>
-</head>
-<body>
-    <h1>Hallo CodeMirror 6</h1>
-    <script>
-        console.log("JS wird automatisch hervorgehoben!");
-    <\/script>
-</body>
-</html>`,
-  extensions: [
-    basicSetup,                         // Standard-Features (Zeilennummern, Undo/Redo, etc.)
-    html(),                             // HTML + CSS + JS Syntax Highlighting
-    yCollab(yText, provider.awareness),  // Echtzeit-Synchronisation via Yjs
-    closeBrackets()
-  ],
-  parent: document.getElementById('#box-html .cm-wrapper')
-});
-
-// Initialize CodeMirror Editors
-const cmConfig = {
-    theme: 'monokai',
-    lineNumbers: true,
-    lineWrapping: true
-};
 
 let preset = "none";
 
@@ -67,19 +31,11 @@ const htmlEditor = new EditorView({
     basicSetup,                         // Standard-Features (Zeilennummern, Undo/Redo, etc.)
     html(),                             // HTML + CSS + JS Syntax Highlighting
     yCollab(yText, provider.awareness),  // Echtzeit-Synchronisation via Yjs
-    closeBrackets()
+    closeBrackets(),
+    monokai
   ],
-  parent: document.getElementById('#box-html .cm-wrapper')
+  parent: document.querySelector('#box-html .cm-wrapper')
 });
-
-// Default content
-htmlEditor.setValue(`<h1>Hallo Programmierer!</h1>
-<p>Dieser Editor ist besser als der Windows Editor</p>
-<p>
-    Weil wir in Informatik sind darf ich hier leider keine schlimmen
-    oder andersweitig lustigen sachen reintun weil ich sonst
-    ein paar Probleme kriege.
-</p>`);
 
 // --- Preview Updating Logic ---
 let updateTimeout;
@@ -165,7 +121,4 @@ document.getElementById('btn-join').onclick = () => {
 
     // Define shared text types
     const yHtml = ydoc.getText('codemirror');
-
-    // Bind CodeMirror instances
-    new CodemirrorBinding(yHtml, htmlEditor, provider.awareness);
 };
