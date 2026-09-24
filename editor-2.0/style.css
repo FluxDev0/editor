@@ -315,5 +315,5 @@ iframe {
 /* Markierung, wenn der Editor inaktiv ist */
 #box-html .cm-wrapper .cm-editor .cm-selectionBackground,
 #box-html .cm-wrapper .cm-editor ::selection {
-  background-color: #555555 !important;
+  background-color: #257b86 !important;
 }
