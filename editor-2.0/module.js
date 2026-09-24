@@ -1,17 +1,44 @@
 import * as Y from 'https://esm.sh/yjs';
 import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
     
-// CodeMirror 6 Core & HTML Language Extension
+// CodeMirror 6 Core & Extensions
 import { EditorView, basicSetup } from 'https://esm.sh/codemirror';
-import { closeBrackets } from 'https://esm.sh/@codemirror/autocomplete';
 import { html } from 'https://esm.sh/@codemirror/lang-html';
 import { monokai } from 'https://esm.sh/@uiw/codemirror-theme-monokai';
+import { Compartment } from 'https://esm.sh/@codemirror/state';
 
 // Yjs Binding für CodeMirror 6
 import { yCollab } from 'https://esm.sh/y-codemirror.next';
 
 let preset = "none";
+let provider = null;
+let ydoc = null;
 
+// Dynamisches Fach (Compartment) für die Yjs-Erweiterung
+const collabCompartment = new Compartment();
+
+// --- Preview Updating Logic ---
+let updateTimeout;
+const iframe = document.getElementById('preview-frame');
+
+function updatePreview() {
+    const presetSelect = document.querySelector("select#preset");
+    if (presetSelect) preset = presetSelect.value;
+    
+    // CM6: Text auslesen über state.doc.toString()
+    const htmlContent = htmlEditor.state.doc.toString();
+    
+    if (iframe) iframe.srcdoc = htmlContent;
+    console.log(preset);
+}
+
+// Trigger bei Textänderungen
+const onChange = () => {
+    clearTimeout(updateTimeout);
+    updateTimeout = setTimeout(updatePreview, 500);
+};
+
+// --- Editor Initialisierung ---
 const htmlEditor = new EditorView({
     doc: `<!DOCTYPE html>
 <html>
@@ -28,60 +55,51 @@ const htmlEditor = new EditorView({
 </body>
 </html>`,
   extensions: [
-    basicSetup,                         // Standard-Features (Zeilennummern, Undo/Redo, etc.)
-    html(),                             // HTML + CSS + JS Syntax Highlighting
-    yCollab(yText, provider.awareness),  // Echtzeit-Synchronisation via Yjs
-    closeBrackets(),
-    monokai
+    basicSetup,                          // Standard-Features (inkl. closeBrackets)
+    html(),                              // HTML + CSS + JS Syntax Highlighting
+    monokai,                             // Theme
+    collabCompartment.of([]),            // Platzhalter für Yjs (wird beim Joinen befüllt)
+    EditorView.updateListener.of((update) => {
+        if (update.docChanged) onChange(); // Event-Listener für Änderungen
+    }),
+    EditorView.lineWrapping
   ],
+  // Korrekter Selektor-Aufruf
   parent: document.querySelector('#box-html .cm-wrapper')
 });
 
-// --- Preview Updating Logic ---
-let updateTimeout;
-const iframe = document.getElementById('preview-frame');
-
-function updatePreview() {
-    preset = document.querySelector("select#preset").value;
-    const html = htmlEditor.getValue();
-    
-    iframe.srcdoc = html;
-    console.log(preset)
-}
-
-// Trigger on change
-const onChange = () => {
-    clearTimeout(updateTimeout);
-    updateTimeout = setTimeout(updatePreview, 500);
-};
-
-htmlEditor.on('change', onChange);
-
-// Initial preview
+// Erstes Preview-Update durchführen
 updatePreview();
 
 // --- File Upload Logic ---
-document.getElementById('file-upload').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+const fileInput = document.getElementById('file-upload');
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        const content = evt.target.result;
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(content, 'text/html');
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            const content = evt.target.result;
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/html');
 
-        let htmlContent = doc.body ? doc.body.innerHTML.trim() : content;
+            let htmlContent = doc.body ? doc.body.innerHTML.trim() : content;
 
-        htmlEditor.setValue(htmlContent);
-    };
-    reader.readAsText(file);
-    e.target.value = ''; // reset
-});
+            // CM6: Inhalt austauschen über dispatch
+            htmlEditor.dispatch({
+                changes: { from: 0, to: htmlEditor.state.doc.length, insert: htmlContent }
+            });
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // Reset
+    });
+}
 
 // --- File Download Logic ---
 function downloadBundle(extension, mimeType) {
-    const blob = new Blob([htmlEditor.getValue()], { type: mimeType });
+    const currentCode = htmlEditor.state.doc.toString();
+    const blob = new Blob([currentCode], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -92,33 +110,47 @@ function downloadBundle(extension, mimeType) {
     URL.revokeObjectURL(url);
 }
 
-document.getElementById('btn-download-html').onclick = () => downloadBundle('html', 'text/html');
-document.getElementById('btn-download-txt').onclick = () => downloadBundle('txt', 'text/plain');
+const btnDownloadHtml = document.getElementById('btn-download-html');
+if (btnDownloadHtml) btnDownloadHtml.onclick = () => downloadBundle('html', 'text/html');
+
+const btnDownloadTxt = document.getElementById('btn-download-txt');
+if (btnDownloadTxt) btnDownloadTxt.onclick = () => downloadBundle('txt', 'text/plain');
 
 // --- Yjs Collaboration Setup ---
-let provider = null;
+const btnJoin = document.getElementById('btn-join');
+if (btnJoin) {
+    btnJoin.onclick = () => {
+        const roomNameInput = document.getElementById('room-name');
+        const passwordInput = document.getElementById('room-password');
+
+        const roomName = roomNameInput ? roomNameInput.value.trim() : '';
+        const password = passwordInput ? passwordInput.value.trim() : '';
         
-document.getElementById('btn-join').onclick = () => {
-    const roomName = document.getElementById('room-name').value.trim();
-    const password = document.getElementById('room-password').value.trim();
-    
-    if (!roomName) {
-        alert('Bitte einen Raumnamen eingeben!');
-        return;
-    }
+        if (!roomName) {
+            alert('Bitte einen Raumnamen eingeben!');
+            return;
+        }
 
-    // Disable inputs
-    document.getElementById('btn-join').disabled = true;
-    document.getElementById('room-name').disabled = true;
-    document.getElementById('room-password').disabled = true;
-    document.getElementById('collab-status').style.display = 'inline-block';
+        // Inputs deaktivieren
+        btnJoin.disabled = true;
+        if (roomNameInput) roomNameInput.disabled = true;
+        if (passwordInput) passwordInput.disabled = true;
 
-    // Setup Yjs Document
-    const ydoc = new Y.Doc();
-            
-    // Setup WebRTC Provider
-    provider = new WebrtcProvider(roomName, ydoc, { password: password || undefined });
+        const statusEl = document.getElementById('collab-status');
+        if (statusEl) statusEl.style.display = 'inline-block';
 
-    // Define shared text types
-    const yHtml = ydoc.getText('codemirror');
-};
+        // 1. Yjs Dokument & Text-Objekt anlegen
+        ydoc = new Y.Doc();
+        const yText = ydoc.getText('codemirror');
+                
+        // 2. WebRTC Provider verbinden
+        provider = new WebrtcProvider(roomName, ydoc, { 
+            password: password || undefined 
+        });
+
+        // 3. Yjs-Erweiterung nachträglich in den Editor injizieren
+        htmlEditor.dispatch({
+            effects: collabCompartment.reconfigure(yCollab(yText, provider.awareness))
+        });
+    };
+}
