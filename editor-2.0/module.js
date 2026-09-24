@@ -57,6 +57,7 @@ const htmlEditor = new EditorView({
             color: white;
         }
     </style>
+    <title>Das ist der Titel der Website</title>
 </head>
 <body>
 <h1>Hallo Programmierer!</h1>

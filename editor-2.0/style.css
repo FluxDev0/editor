@@ -309,8 +309,7 @@ iframe {
 
 #box-html .cm-wrapper .cm-editor.cm-focused .cm-selectionBackground,
 #box-html .cm-wrapper .cm-editor.cm-focused ::selection {
-  background-color: #464646 !important;
-  border-radius: 5px;
+  background-color: #2e646b !important;
 }
 
 /* Markierung, wenn der Editor inaktiv ist */
