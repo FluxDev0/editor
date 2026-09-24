@@ -4,8 +4,12 @@ import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
 // CodeMirror 6 Core & Extensions
 import { EditorView, basicSetup } from 'https://esm.sh/codemirror';
 import { html } from 'https://esm.sh/@codemirror/lang-html';
+import { closeBrackets } from 'https://esm.sh/@codemirror/autocomplete';
 import { monokai } from 'https://esm.sh/@uiw/codemirror-theme-monokai';
-import { Compartment } from 'https://esm.sh/@codemirror/state';
+import { Compartment, EditorState } from 'https://esm.sh/@codemirror/state';
+import { keymap } from 'https://esm.sh/@codemirror/view';
+import { indentWithTab } from 'https://esm.sh/@codemirror/commands';
+import { indentUnit } from 'https://esm.sh/@codemirror/language';
 
 // Yjs Binding für CodeMirror 6
 import { yCollab } from 'https://esm.sh/y-codemirror.next';
@@ -29,7 +33,6 @@ function updatePreview() {
     const htmlContent = htmlEditor.state.doc.toString();
     
     if (iframe) iframe.srcdoc = htmlContent;
-    console.log(preset);
 }
 
 // Trigger bei Textänderungen
@@ -44,20 +47,35 @@ const htmlEditor = new EditorView({
 <html>
 <head>
     <style>
-        h1 { color: #2b6cb0; }
+        body { 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            font-family: sans-serif; 
+            background: #1e1e1e; 
+            color: white;
+        }
     </style>
 </head>
 <body>
-    <h1>Hallo CodeMirror 6</h1>
-    <script>
-        console.log("JS wird automatisch hervorgehoben!");
-    <\/script>
+<h1>Hallo Programmierer!</h1>
+<p>Dieser Editor ist besser als der Windows Editor</p>
+<p>
+    Weil wir in Informatik sind darf ich hier leider keine schlimmen
+    oder andersweitig lustigen sachen reintun weil ich sonst
+    ein paar Probleme kriege.
+</p>
 </body>
 </html>`,
   extensions: [
     basicSetup,                          // Standard-Features (inkl. closeBrackets)
     html(),                              // HTML + CSS + JS Syntax Highlighting
-    monokai,                             // Theme
+    monokai,
+    closeBrackets(),
+    keymap.of([indentWithTab]),
+    indentUnit.of("    "),
+    EditorState.tabSize.of(2),
     collabCompartment.of([]),            // Platzhalter für Yjs (wird beim Joinen befüllt)
     EditorView.updateListener.of((update) => {
         if (update.docChanged) onChange(); // Event-Listener für Änderungen

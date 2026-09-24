@@ -292,7 +292,6 @@ iframe {
 /* 2. CodeMirror auf die volle Containerhöhe strecken */
 .cm-editor {
     height: 100% !important;
-    font-family: var(--font-mono);
     font-size: 14px;
     background-color: var(--bg-main) !important;
     cursor: text;
@@ -305,4 +304,17 @@ iframe {
 
 .cm-scroller {
     overflow: auto;
+    font-family: var(--font-mono) !important;
+}
+
+#box-html .cm-wrapper .cm-editor.cm-focused .cm-selectionBackground,
+#box-html .cm-wrapper .cm-editor.cm-focused ::selection {
+  background-color: #464646 !important;
+  border-radius: 5px;
+}
+
+/* Markierung, wenn der Editor inaktiv ist */
+#box-html .cm-wrapper .cm-editor .cm-selectionBackground,
+#box-html .cm-wrapper .cm-editor ::selection {
+  background-color: #555555 !important;
 }
