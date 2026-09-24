@@ -100,6 +100,8 @@ const presets = {
 };
 
 const htmlEditor = CodeMirror.fromTextArea(document.getElementById('code-html'), { ...cmConfig, mode: 'htmlmixed' });
+const cssEditor = CodeMirror.fromTextArea(document.getElementById('code-css'), { ...cmConfig, mode: 'css' });
+const jsEditor = CodeMirror.fromTextArea(document.getElementById('code-js'), { ...cmConfig, mode: 'javascript' });
 
 // Default content
 htmlEditor.setValue(`<h1>Hallo Programmierer!</h1>
@@ -110,6 +112,18 @@ htmlEditor.setValue(`<h1>Hallo Programmierer!</h1>
     ein paar Probleme kriege.
 </p>`);
 
+cssEditor.setValue(`body { 
+    margin: 0; 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    font-family: sans-serif; 
+    background: #1e1e1e; 
+    color: white;
+}`);
+
+jsEditor.setValue("console.log('Mir fällt gerade nichts ein was ich hier hin schreiben kann.');");
+
 // --- Preview Updating Logic ---
 let updateTimeout;
 const iframe = document.getElementById('preview-frame');
@@ -117,8 +131,35 @@ const iframe = document.getElementById('preview-frame');
 function updatePreview() {
     preset = document.querySelector("select#preset").value;
     const html = htmlEditor.getValue();
+    const css = cssEditor.getValue();
+    const js = jsEditor.getValue();
+
+    // Script that intercepts console.log inside the iframe
+    const interceptor = `
+    <script>
+        const p = window.parent;
+        const _log = console.log, _err = console.error, _warn = console.warn;
+        console.log = (...args) => { p.postMessage({type:'console', level:'log', content: args.join(' ')}, '*'); _log(...args); };
+        console.error = (...args) => { p.postMessage({type:'console', level:'error', content: args.join(' ')}, '*'); _err(...args); };
+        console.warn = (...args) => { p.postMessage({type:'console', level:'warn', content: args.join(' ')}, '*'); _warn(...args); };
+        window.onerror = (msg, url, line) => { p.postMessage({type:'console', level:'error', content: msg + ' (Zeile: ' + line + ')'}, '*'); };
+    <\/script>
+    `;
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <style>${css}${presets[preset].css}</style>
+    ${interceptor}
+</head>
+<body>
+${html}${presets[preset].html}
+    <script>${js}${presets[preset].js}<\/script>
+</body>
+</html>`;
     
-    iframe.srcdoc = html;
+    iframe.srcdoc = fullHtml;
     console.log(preset)
 }
 
@@ -129,6 +170,8 @@ const onChange = () => {
 };
 
 htmlEditor.on('change', onChange);
+cssEditor.on('change', onChange);
+jsEditor.on('change', onChange);
 
 // Initial preview
 updatePreview();
@@ -144,9 +187,17 @@ document.getElementById('file-upload').addEventListener('change', (e) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
 
+        let cssContent = '';
+        doc.querySelectorAll('style').forEach(s => { cssContent += s.innerHTML + '\n'; s.remove(); });
+
+        let jsContent = '';
+        doc.querySelectorAll('script').forEach(s => { jsContent += s.innerHTML + '\n'; s.remove(); });
+
         let htmlContent = doc.body ? doc.body.innerHTML.trim() : content;
 
         htmlEditor.setValue(htmlContent);
+        cssEditor.setValue(cssContent.trim());
+        jsEditor.setValue(jsContent.trim());
     };
     reader.readAsText(file);
     e.target.value = ''; // reset
@@ -154,7 +205,23 @@ document.getElementById('file-upload').addEventListener('change', (e) => {
 
 // --- File Download Logic ---
 function downloadBundle(extension, mimeType) {
-    const blob = new Blob([htmlEditor.getValue()], { type: mimeType });
+    const fullCode = `<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Beste Website der Welt</title>
+    <style>
+${cssEditor.getValue()}
+    </style>
+</head>
+<body>
+${htmlEditor.getValue()}
+    <script>
+${jsEditor.getValue()}
+    <\/script>
+</body>
+</html>`;
+    const blob = new Blob([fullCode], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -194,7 +261,11 @@ document.getElementById('btn-join').onclick = () => {
 
     // Define shared text types
     const yHtml = ydoc.getText('html');
+    const yCss = ydoc.getText('css');
+    const yJs = ydoc.getText('js');
 
     // Bind CodeMirror instances
     new CodemirrorBinding(yHtml, htmlEditor, provider.awareness);
+    new CodemirrorBinding(yCss, cssEditor, provider.awareness);
+    new CodemirrorBinding(yJs, jsEditor, provider.awareness);
 };
