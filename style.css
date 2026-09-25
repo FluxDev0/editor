@@ -14,7 +14,8 @@ a:-webkit-any-link {
 }
 
 .code {
-    font-size: 18px;
+    font-family: Consolas;
+    font-size: 16px;
     border: #6a6c8b solid 2px;
     border-radius: 5px;
     padding: 2px;

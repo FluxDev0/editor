@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Custom Color Picker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-focus: #3b82f6;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(30, 41, 59, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Fira Code', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 840px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Canvas / 2D Picker Box */
+        .color-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            cursor: crosshair;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        #colorCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .picker-cursor {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.6), inset 0 0 2px rgba(0,0,0,0.6);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        /* Sliders Controls Section */
+        .sliders-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .slider-track {
+            position: relative;
+            flex: 1;
+            height: 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .hue-track {
+            background: linear-gradient(to right, 
+                #ff0000 0%, #ffff00 17%, #00ff00 33%, 
+                #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+        }
+
+        .alpha-track {
+            background-color: #334155;
+            background-image: 
+                linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+                linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+            background-size: 10px 10px;
+            background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+        }
+
+        .alpha-gradient {
+            position: absolute;
+            inset: 0;
+            border-radius: 7px;
+        }
+
+        .slider-thumb {
+            position: absolute;
+            top: 50%;
+            width: 18px;
+            height: 18px;
+            background: #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: transform 0.05s ease;
+        }
+
+        /* Eyedropper Button */
+        .btn-icon {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-icon svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* Format Selector Tabs */
+        .format-tabs {
+            display: flex;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 3px;
+            border-radius: var(--radius-sm);
+            gap: 2px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 6px 0;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-color);
+            color: #ffffff;
+        }
+
+        /* Input Fields Group */
+        .inputs-grid {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .field-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .field-box label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        .field-box input {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .field-box input:focus {
+            border-color: var(--border-focus);
+        }
+
+        /* Swatches and History */
+        .swatches-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .swatch-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.4rem;
+        }
+
+        .swatch-item {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            position: relative;
+        }
+
+        .swatch-item:hover {
+            transform: scale(1.15);
+            z-index: 2;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4), inset 0 0 0 1px #ffffff;
+        }
+
+        /* Preview Card */
+        .preview-box {
+            position: relative;
+            height: 90px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+            background-color: #334155;
+            background-image: 
+                linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+                linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        .preview-color-overlay {
+            position: absolute;
+            inset: 0;
+            transition: background-color 0.05s ease;
+        }
+
+        .copy-badge {
+            position: relative;
+            z-index: 10;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .copy-badge:hover {
+            transform: translateY(-2px);
+            background: rgba(15, 23, 42, 0.95);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        /* Code Block Area */
+        .code-export-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .code-box {
+            background: #090d16;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            position: relative;
+            white-space: pre;
+            line-height: 1.5;
+        }
+
+        .btn-copy-code {
+            background: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-copy-code:hover {
+            background: var(--accent-hover);
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Main Picker Card -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">
+                    🎨 Color Picker
+                </span>
+                <button class="btn-icon" id="eyeDropperBtn" title="Farbe vom Bildschirm picken">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 9.36 17.5 9.36 16.82 10.04L15.3 11.56L12.44 8.7L13.96 7.18C14.64 6.5 14.64 5.33 13.96 4.65L12.55 3.24C11.87 2.56 10.7 2.56 10.02 3.24L8.85 4.41L10.26 5.82L7.13 8.95L3.25 12.83C2.92 13.16 2.73 13.61 2.73 14.08V17.27H5.92C6.39 17.27 6.84 17.08 7.17 16.75L11.05 12.87L12.46 14.28L13.63 13.11C14.31 12.43 14.31 11.26 13.63 10.58L12.22 9.17L15.08 12.03L13.96 13.15C13.28 13.83 13.28 15 13.96 15.68L15.37 17.09C16.05 17.77 17.22 17.77 17.9 17.09L20.76 14.23C21.44 13.55 21.44 12.38 20.76 11.7L19.35 10.04Z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Interactive 2D Canvas -->
+            <div class="color-canvas-wrapper" id="canvasWrapper">
+                <canvas id="colorCanvas"></canvas>
+                <div class="picker-cursor" id="pickerCursor"></div>
+            </div>
+
+            <!-- Hue & Alpha Controls -->
+            <div class="sliders-container">
+                <!-- Hue Slider -->
+                <div class="slider-row">
+                    <div class="slider-track hue-track" id="hueTrack">
+                        <div class="slider-thumb" id="hueThumb"></div>
+                    </div>
+                </div>
+
+                <!-- Alpha Slider -->
+                <div class="slider-row">
+                    <div class="slider-track alpha-track" id="alphaTrack">
+                        <div class="alpha-gradient" id="alphaGradient"></div>
+                        <div class="slider-thumb" id="alphaThumb"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Format Switch Tabs -->
+            <div class="format-tabs">
+                <button class="tab-btn active" data-format="hex">HEX</button>
+                <button class="tab-btn" data-format="rgb">RGB</button>
+                <button class="tab-btn" data-format="hsl">HSL</button>
+            </div>
+
+            <!-- Dynamic Input Fields -->
+            <div class="inputs-grid" id="inputsContainer">
+                <!-- Javascript will populate input fields according to tab -->
+            </div>
+
+            <!-- Preset Swatches -->
+            <div class="swatches-section">
+                <div class="section-label">Presets</div>
+                <div class="swatch-grid" id="presetSwatches"></div>
+            </div>
+
+            <!-- History Swatches -->
+            <div class="swatches-section">
+                <div class="section-label">Verlauf</div>
+                <div class="swatch-grid" id="historySwatches"></div>
+            </div>
+        </div>
+
+        <!-- Preview & Output Side Card -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Live Vorschau & Export</span>
+            </div>
+
+            <!-- Color Preview Area -->
+            <div class="preview-box">
+                <div class="preview-color-overlay" id="previewOverlay"></div>
+                <button class="copy-badge" id="copyColorBtn">
+                    <span id="copyBtnText">#FF0000</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                </button>
+            </div>
+
+            <!-- Code Integration Box -->
+            <div class="code-export-container">
+                <div class="code-header">
+                    <span class="section-label">CSS Code Snippet</span>
+                    <button class="btn-copy-code" id="copyCodeBtn">Code kopieren</button>
+                </div>
+                <pre class="code-box" id="codeBox"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">In Zwischenablage kopiert!</div>
+
+    <script>
+        // --- COLOR ENGINE & STATE ---
+        class ColorPickerEngine {
+            constructor() {
+                // Internal State in HSV (Hue: 0-360, Saturation: 0-1, Value: 0-1, Alpha: 0-1)
+                this.h = 0;
+                this.s = 1;
+                this.v = 1;
+                this.a = 1;
+                
+                this.currentFormat = 'hex';
+                this.history = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+                this.presets = [
+                    '#f87171', '#fb923c', '#fbbf24', '#34d399', '#22d3ee', '#818cf8', '#c084fc', '#f472b6',
+                    '#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4', '#6366f1', '#a855f7', '#ec4899',
+                    '#dc2626', '#ea580c', '#d97706', '#059669', '#0891b2', '#4f46e5', '#9333ea', '#db2777'
+                ];
+
+                this.initDOM();
+                this.initCanvas();
+                this.bindEvents();
+                this.renderPresets();
+                this.renderHistory();
+                this.updateUI();
+            }
+
+            initDOM() {
+                this.canvas = document.getElementById('colorCanvas');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+                this.canvasWrapper = document.getElementById('canvasWrapper');
+                this.pickerCursor = document.getElementById('pickerCursor');
+
+                this.hueTrack = document.getElementById('hueTrack');
+                this.hueThumb = document.getElementById('hueThumb');
+                this.alphaTrack = document.getElementById('alphaTrack');
+                this.alphaThumb = document.getElementById('alphaThumb');
+                this.alphaGradient = document.getElementById('alphaGradient');
+
+                this.inputsContainer = document.getElementById('inputsContainer');
+                this.previewOverlay = document.getElementById('previewOverlay');
+                this.copyBtnText = document.getElementById('copyBtnText');
+                this.codeBox = document.getElementById('codeBox');
+                this.toast = document.getElementById('toast');
+                this.eyeDropperBtn = document.getElementById('eyeDropperBtn');
+
+                // EyeDropper feature support check
+                if (!('EyeDropper' in window)) {
+                    this.eyeDropperBtn.style.display = 'none';
+                }
+            }
+
+            initCanvas() {
+                const rect = this.canvasWrapper.getBoundingClientRect();
+                this.canvas.width = rect.width || 300;
+                this.canvas.height = rect.height || 200;
+                this.drawCanvas();
+            }
+
+            drawCanvas() {
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+
+                // Base Pure Hue Color
+                const hueColor = `hsl(${this.h}, 100%, 50%)`;
+                
+                this.ctx.fillStyle = hueColor;
+                this.ctx.fillRect(0, 0, width, height);
+
+                // Horizontal White Gradient (Saturation 0 -> 1)
+                const whiteGrad = this.ctx.createLinearGradient(0, 0, width, 0);
+                whiteGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                whiteGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                this.ctx.fillStyle = whiteGrad;
+                this.ctx.fillRect(0, 0, width, height);
+
+                // Vertical Black Gradient (Value 1 -> 0)
+                const blackGrad = this.ctx.createLinearGradient(0, 0, 0, height);
+                blackGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                blackGrad.addColorStop(1, 'rgba(0, 0, 0, 1)');
+                this.ctx.fillStyle = blackGrad;
+                this.ctx.fillRect(0, 0, width, height);
+            }
+
+            // HSV -> RGB Conversions
+            static hsvToRgb(h, s, v) {
+                let r, g, b;
+                let i = Math.floor(h / 60);
+                let f = h / 60 - i;
+                let p = v * (1 - s);
+                let q = v * (1 - f * s);
+                let t = v * (1 - (1 - f) * s);
+                switch (i % 6) {
+                    case 0: r = v; g = t; b = p; break;
+                    case 1: r = q; g = v; b = p; break;
+                    case 2: r = p; g = v; b = t; break;
+                    case 3: r = p; g = q; b = v; break;
+                    case 4: r = t; g = p; b = v; break;
+                    case 5: r = v; g = p; b = q; break;
+                }
+                return {
+                    r: Math.round(r * 255),
+                    g: Math.round(g * 255),
+                    b: Math.round(b * 255)
+                };
+            }
+
+            // RGB -> HSV Conversions
+            static rgbToHsv(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                let max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, v = max;
+                let d = max - min;
+                s = max === 0 ? 0 : d / max;
+                if (max === min) {
+                    h = 0;
+                } else {
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return { h: Math.round(h * 360), s: s, v: v };
+            }
+
+            // HSV -> HSL
+            static hsvToHsl(h, s, v) {
+                let l = v * (1 - s / 2);
+                let sl = (l === 0 || l === 1) ? 0 : (v - l) / Math.min(l, 1 - l);
+                return {
+                    h: Math.round(h),
+                    s: Math.round(sl * 100),
+                    l: Math.round(l * 100)
+                };
+            }
+
+            // HSL -> HSV
+            static hslToHsv(h, s, l) {
+                s /= 100;
+                l /= 100;
+                let v = l + s * Math.min(l, 1 - l);
+                let sv = v === 0 ? 0 : 2 * (1 - l / v);
+                return { h, s: sv, v };
+            }
+
+            // Convert current state to HEX string
+            getFormattedHex() {
+                const { r, g, b } = ColorPickerEngine.hsvToRgb(this.h, this.s, this.v);
+                const toHex = x => x.toString(16).padStart(2, '0');
+                let hex = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+                if (this.a < 1) {
+                    hex += toHex(Math.round(this.a * 255));
+                }
+                return hex.toUpperCase();
+            }
+
+            // Get CSS color string representation
+            getFormattedCss() {
+                const { r, g, b } = ColorPickerEngine.hsvToRgb(this.h, this.s, this.v);
+                if (this.a < 1) {
+                    return `rgba(${r}, ${g}, ${b}, ${parseFloat(this.a.toFixed(2))})`;
+                }
+                if (this.currentFormat === 'hsl') {
+                    const { h, s, l } = ColorPickerEngine.hsvToHsl(this.h, this.s, this.v);
+                    return `hsl(${h}, ${s}%, ${l}%)`;
+                }
+                if (this.currentFormat === 'rgb') {
+                    return `rgb(${r}, ${g}, ${b})`;
+                }
+                return this.getFormattedHex();
+            }
+
+            updateUI() {
+                // 1. Draw Canvas and position cursor
+                this.drawCanvas();
+                const canvasRect = this.canvasWrapper.getBoundingClientRect();
+                const x = this.s * canvasRect.width;
+                const y = (1 - this.v) * canvasRect.height;
+                this.pickerCursor.style.left = `${x}px`;
+                this.pickerCursor.style.top = `${y}px`;
+
+                // 2. Hue Slider Position
+                const huePercent = (this.h / 360) * 100;
+                this.hueThumb.style.left = `${huePercent}%`;
+
+                // 3. Alpha Slider Track Gradient & Position
+                const { r, g, b } = ColorPickerEngine.hsvToRgb(this.h, this.s, this.v);
+                this.alphaGradient.style.background = `linear-gradient(to right, transparent, rgb(${r}, ${g}, ${b}))`;
+                this.alphaThumb.style.left = `${this.a * 100}%`;
+
+                // 4. Live Preview Box
+                const colorString = `rgba(${r}, ${g}, ${b}, ${this.a})`;
+                this.previewOverlay.style.backgroundColor = colorString;
+                
+                // 5. Update Copy Text & Inputs
+                const activeText = this.getFormattedCss();
+                this.copyBtnText.textContent = activeText;
+                this.updateInputValues();
+
+                // 6. Update Code Export Block
+                this.codeBox.textContent = `:root {\n  --custom-color: ${activeText};\n}\n\n.my-element {\n  background-color: var(--custom-color);\n}`;
+            }
+
+            renderInputs() {
+                this.inputsContainer.innerHTML = '';
+                if (this.currentFormat === 'hex') {
+                    this.inputsContainer.innerHTML = `
+                        <div class="input-group">
+                            <div class="field-box">
+                                <label>HEX</label>
+                                <input type="text" id="hexInput" value="${this.getFormattedHex()}" spellcheck="false">
+                            </div>
+                        </div>
+                    `;
+                } else if (this.currentFormat === 'rgb') {
+                    const { r, g, b } = ColorPickerEngine.hsvToRgb(this.h, this.s, this.v);
+                    this.inputsContainer.innerHTML = `
+                        <div class="input-group">
+                            <div class="field-box"><label>R</label><input type="number" id="rInput" min="0" max="255" value="${r}"></div>
+                            <div class="field-box"><label>G</label><input type="number" id="gInput" min="0" max="255" value="${g}"></div>
+                            <div class="field-box"><label>B</label><input type="number" id="bInput" min="0" max="255" value="${b}"></div>
+                            <div class="field-box"><label>A (%)</label><input type="number" id="aInput" min="0" max="100" value="${Math.round(this.a * 100)}"></div>
+                        </div>
+                    `;
+                } else if (this.currentFormat === 'hsl') {
+                    const { h, s, l } = ColorPickerEngine.hsvToHsl(this.h, this.s, this.v);
+                    this.inputsContainer.innerHTML = `
+                        <div class="input-group">
+                            <div class="field-box"><label>H (°)</label><input type="number" id="hInput" min="0" max="360" value="${h}"></div>
+                            <div class="field-box"><label>S (%)</label><input type="number" id="sInput" min="0" max="100" value="${s}"></div>
+                            <div class="field-box"><label>L (%)</label><input type="number" id="lInput" min="0" max="100" value="${l}"></div>
+                            <div class="field-box"><label>A (%)</label><input type="number" id="aHslInput" min="0" max="100" value="${Math.round(this.a * 100)}"></div>
+                        </div>
+                    `;
+                }
+                this.bindInputEvents();
+            }
+
+            updateInputValues() {
+                if (this.currentFormat === 'hex') {
+                    const hexInput = document.getElementById('hexInput');
+                    if (hexInput && document.activeElement !== hexInput) {
+                        hexInput.value = this.getFormattedHex();
+                    }
+                } else if (this.currentFormat === 'rgb') {
+                    const { r, g, b } = ColorPickerEngine.hsvToRgb(this.h, this.s, this.v);
+                    ['rInput', 'gInput', 'bInput', 'aInput'].forEach((id, idx) => {
+                        const el = document.getElementById(id);
+                        if (el && document.activeElement !== el) {
+                            if (id === 'rInput') el.value = r;
+                            if (id === 'gInput') el.value = g;
+                            if (id === 'bInput') el.value = b;
+                            if (id === 'aInput') el.value = Math.round(this.a * 100);
+                        }
+                    });
+                } else if (this.currentFormat === 'hsl') {
+                    const { h, s, l } = ColorPickerEngine.hsvToHsl(this.h, this.s, this.v);
+                    ['hInput', 'sInput', 'lInput', 'aHslInput'].forEach((id) => {
+                        const el = document.getElementById(id);
+                        if (el && document.activeElement !== el) {
+                            if (id === 'hInput') el.value = h;
+                            if (id === 'sInput') el.value = s;
+                            if (id === 'lInput') el.value = l;
+                            if (id === 'aHslInput') el.value = Math.round(this.a * 100);
+                        }
+                    });
+                }
+            }
+
+            bindEvents() {
+                // 2D Canvas Drag Interaction
+                let isDraggingCanvas = false;
+                const handleCanvasMove = (e) => {
+                    const rect = this.canvasWrapper.getBoundingClientRect();
+                    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+                    this.s = x / rect.width;
+                    this.v = 1 - (y / rect.height);
+                    this.updateUI();
+                };
+
+                this.canvasWrapper.addEventListener('mousedown', (e) => {
+                    isDraggingCanvas = true;
+                    handleCanvasMove(e);
+                });
+
+                // Hue Slider Drag Interaction
+                let isDraggingHue = false;
+                const handleHueMove = (e) => {
+                    const rect = this.hueTrack.getBoundingClientRect();
+                    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                    this.h = (x / rect.width) * 360;
+                    if (this.h >= 360) this.h = 359.9;
+                    this.updateUI();
+                };
+
+                this.hueTrack.addEventListener('mousedown', (e) => {
+                    isDraggingHue = true;
+                    handleHueMove(e);
+                });
+
+                // Alpha Slider Drag Interaction
+                let isDraggingAlpha = false;
+                const handleAlphaMove = (e) => {
+                    const rect = this.alphaTrack.getBoundingClientRect();
+                    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                    this.a = Math.max(0, Math.min(1, x / rect.width));
+                    this.updateUI();
+                };
+
+                this.alphaTrack.addEventListener('mousedown', (e) => {
+                    isDraggingAlpha = true;
+                    handleAlphaMove(e);
+                });
+
+                // Global Pointer Events
+                window.addEventListener('mousemove', (e) => {
+                    if (isDraggingCanvas) handleCanvasMove(e);
+                    if (isDraggingHue) handleHueMove(e);
+                    if (isDraggingAlpha) handleAlphaMove(e);
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (isDraggingCanvas || isDraggingHue || isDraggingAlpha) {
+                        this.addToHistory(this.getFormattedHex());
+                    }
+                    isDraggingCanvas = false;
+                    isDraggingHue = false;
+                    isDraggingAlpha = false;
+                });
+
+                // Tab Switcher
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentFormat = e.target.dataset.format;
+                        this.renderInputs();
+                        this.updateUI();
+                    });
+                });
+
+                // Copy Buttons
+                document.getElementById('copyColorBtn').addEventListener('click', () => {
+                    this.copyToClipboard(this.getFormattedCss());
+                });
+
+                document.getElementById('copyCodeBtn').addEventListener('click', () => {
+                    this.copyToClipboard(this.codeBox.textContent);
+                });
+
+                // EyeDropper API
+                this.eyeDropperBtn.addEventListener('click', async () => {
+                    if ('EyeDropper' in window) {
+                        try {
+                            const eyeDropper = new EyeDropper();
+                            const result = await eyeDropper.open();
+                            this.setColorFromHex(result.sRGBHex);
+                        } catch (e) {
+                            // User canceled eyedropper
+                        }
+                    }
+                });
+
+                // Resize handler for canvas
+                window.addEventListener('resize', () => this.initCanvas());
+
+                this.renderInputs();
+            }
+
+            bindInputEvents() {
+                if (this.currentFormat === 'hex') {
+                    const hexInput = document.getElementById('hexInput');
+                    hexInput?.addEventListener('input', (e) => {
+                        let val = e.target.value.trim();
+                        if (!val.startsWith('#')) val = '#' + val;
+                        if (/^#([0-9A-F]{3}){1,2}$/i.test(val) || /^#([0-9A-F]{4}){1,2}$/i.test(val)) {
+                            this.setColorFromHex(val);
+                        }
+                    });
+                } else if (this.currentFormat === 'rgb') {
+                    const updateRGB = () => {
+                        const r = parseInt(document.getElementById('rInput').value) || 0;
+                        const g = parseInt(document.getElementById('gInput').value) || 0;
+                        const b = parseInt(document.getElementById('bInput').value) || 0;
+                        const a = (parseInt(document.getElementById('aInput').value) || 100) / 100;
+                        const hsv = ColorPickerEngine.rgbToHsv(r, g, b);
+                        this.h = hsv.h;
+                        this.s = hsv.s;
+                        this.v = hsv.v;
+                        this.a = Math.max(0, Math.min(1, a));
+                        this.updateUI();
+                    };
+                    ['rInput', 'gInput', 'bInput', 'aInput'].forEach(id => {
+                        document.getElementById(id)?.addEventListener('input', updateRGB);
+                    });
+                } else if (this.currentFormat === 'hsl') {
+                    const updateHSL = () => {
+                        const h = parseInt(document.getElementById('hInput').value) || 0;
+                        const s = parseInt(document.getElementById('sInput').value) || 0;
+                        const l = parseInt(document.getElementById('lInput').value) || 0;
+                        const a = (parseInt(document.getElementById('aHslInput').value) || 100) / 100;
+                        const hsv = ColorPickerEngine.hslToHsv(h, s, l);
+                        this.h = hsv.h;
+                        this.s = hsv.s;
+                        this.v = hsv.v;
+                        this.a = Math.max(0, Math.min(1, a));
+                        this.updateUI();
+                    };
+                    ['hInput', 'sInput', 'lInput', 'aHslInput'].forEach(id => {
+                        document.getElementById(id)?.addEventListener('input', updateHSL);
+                    });
+                }
+            }
+
+            setColorFromHex(hex) {
+                let c = hex.replace('#', '');
+                if (c.length === 3) c = c.split('').map(x => x + x).join('');
+                if (c.length === 6) c += 'FF';
+
+                const r = parseInt(c.substring(0, 2), 16);
+                const g = parseInt(c.substring(2, 4), 16);
+                const b = parseInt(c.substring(4, 6), 16);
+                const a = parseInt(c.substring(6, 8), 16) / 255;
+
+                const hsv = ColorPickerEngine.rgbToHsv(r, g, b);
+                this.h = hsv.h;
+                this.s = hsv.s;
+                this.v = hsv.v;
+                this.a = isNaN(a) ? 1 : a;
+
+                this.addToHistory(this.getFormattedHex());
+                this.updateUI();
+            }
+
+            renderPresets() {
+                const container = document.getElementById('presetSwatches');
+                container.innerHTML = '';
+                this.presets.forEach(color => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'swatch-item';
+                    swatch.style.backgroundColor = color;
+                    swatch.title = color;
+                    swatch.addEventListener('click', () => this.setColorFromHex(color));
+                    container.appendChild(swatch);
+                });
+            }
+
+            renderHistory() {
+                const container = document.getElementById('historySwatches');
+                container.innerHTML = '';
+                this.history.forEach(color => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'swatch-item';
+                    swatch.style.backgroundColor = color;
+                    swatch.title = color;
+                    swatch.addEventListener('click', () => this.setColorFromHex(color));
+                    container.appendChild(swatch);
+                });
+            }
+
+            addToHistory(color) {
+                if (this.history[0] === color) return;
+                this.history = [color, ...this.history.filter(c => c !== color)].slice(0, 8);
+                this.renderHistory();
+            }
+
+            copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                // Show Toast Feedback
+                this.toast.classList.add('show');
+                setTimeout(() => {
+                    this.toast.classList.remove('show');
+                }, 2000);
+            }
+        }
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            new ColorPickerEngine();
+        });
+    </script>
+</body>
+</html>
