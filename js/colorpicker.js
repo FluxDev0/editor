@@ -1,274 +1,284 @@
 export { ColorPicker };
 
-const colorPickerStyles = `
-.color-picker-wrapper {
-    position: relative;
-    display: inline-block;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    box-sizing: border-box;
-}
-
-.color-picker-wrapper *,
-.color-picker-wrapper *::before,
-.color-picker-wrapper *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-/* Swatch / Trigger Button */
-.color-picker-wrapper .color-picker-trigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.color-picker-wrapper .color-picker-trigger:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-}
-
-.color-picker-wrapper .color-swatch-preview {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    border: 1px solid rgba(0,0,0,0.1);
-}
-
-.color-picker-wrapper .color-hex-text {
-    font-size: 14px;
-    font-weight: 600;
-    color: #334155;
-    font-family: monospace;
-}
-
-/* Popover Modal */
-.color-picker-wrapper .color-picker-popover {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    width: 350px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 12px;
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-    display: none;
-    flex-direction: column;
-    gap: 12px;
-    z-index: 9999;
-}
-
-.color-picker-wrapper .color-picker-popover.active {
-    display: flex;
-}
-
-/* 2D Saturation / Value Canvas */
-.color-picker-wrapper .sat-val-area {
-    position: relative;
-    width: 100%;
-    height: 150px;
-    border-radius: 8px;
-    background-color: red;
-    cursor: crosshair;
-    overflow: hidden;
-}
-
-.color-picker-wrapper .sat-white {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to right, #fff, rgba(255,255,255,0));
-}
-
-.color-picker-wrapper .val-black {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, #000, rgba(0,0,0,0));
-}
-
-.color-picker-wrapper .sat-val-picker {
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    border: 2px solid #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 0 4px rgba(0,0,0,0.5);
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-}
-
-/* Hue Slider */
-.color-picker-wrapper .hue-slider {
-    position: relative;
-    width: 100%;
-    height: 12px;
-    border-radius: 6px;
-    background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
-    cursor: pointer;
-}
-
-.color-picker-wrapper .hue-picker {
-    position: absolute;
-    top: 50%;
-    width: 16px;
-    height: 16px;
-    background: #ffffff;
-    border: 2px solid #334155;
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-}
-
-/* Inputs */
-.color-picker-wrapper .color-inputs {
-    display: flex;
-    gap: 8px;
-}
-
-.color-picker-wrapper .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-}
-
-.color-picker-wrapper .input-group label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-}
-
-.color-picker-wrapper .input-group input {
-    width: 100%;
-    padding: 6px 8px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    font-size: 12px;
-    font-family: monospace;
-    color: #1e293b;
-    outline: none;
-    background: #f8fafc;
-}
-
-.color-picker-wrapper .input-group input:focus {
-    border-color: #3b82f6;
-    background: #ffffff;
-}
-
-/* Presets */
-.color-picker-wrapper .presets-title {
-    font-size: 10px;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-}
-
-.color-picker-wrapper .presets-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-}
-
-.color-picker-wrapper .preset-btn {
-    height: 22px;
-    border-radius: 4px;
-    border: 1px solid rgba(0,0,0,0.1);
-    cursor: pointer;
-    transition: transform 0.1s ease;
-}
-
-.color-picker-wrapper .preset-btn:hover {
-    transform: scale(1.08);
-}`;
-
-if (!document.getElementById('color-picker-styles')) {
-    const styleEl = document.createElement('style');
-    styleEl.id = 'color-picker-styles';
-    styleEl.textContent = colorPickerStyles;
-    document.head.appendChild(styleEl);
-}
-
 class ColorPicker {
     constructor(wrapperQuerySelector, initialHex = '#3b82f6') {
-        // Elements
         this.wrapper = document.querySelector(wrapperQuerySelector);
-        this.wrapper.innerHTML = `
-        <!-- Swatch Trigger Button -->
-            <div class="color-picker-trigger" id="pickerTrigger">
-                <div class="color-swatch-preview" id="swatchPreview"></div>
-                <span class="color-hex-text" id="hexText">#3B82F6</span>
-            </div>
 
-            <!-- Popover Farbeditor -->
-            <div class="color-picker-popover" id="pickerPopover">
-                <!-- 2D Saturation/Value Area -->
-                <div class="sat-val-area" id="satValArea">
-                    <div class="sat-white"></div>
-                    <div class="val-black"></div>
-                    <div class="sat-val-picker" id="satValPicker"></div>
+        if (!this.wrapper) {
+            console.error(`CustomColorPicker: Element "${wrapperQuerySelector}" nicht gefunden.`);
+            return;
+        }
+
+        // 1. Shadow DOM erstellen -> Isoliert den Picker komplett vor externem CSS
+        this.shadow = this.wrapper.attachShadow({ mode: 'open' });
+
+        // 2. HTML & CSS direkt in das Shadow Root einfügen
+        this.shadow.innerHTML = `
+            <style>
+                :host {
+                    display: inline-block;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                    box-sizing: border-box;
+                    
+                    /* Erlaubt das Verändern der Hintergrundfarbe von außen! */
+                    --picker-bg: #202024;
+                    --picker-text: #e8ebf0;
+                    --picker-border: #313436;
+
+                    /*
+                    --picker-bg: #ffffff;
+                    --picker-text: #334155;
+                    --picker-border: #e2e8f0;
+                    */
+                }
+
+                *, *::before, *::after {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+
+                .color-picker-wrapper {
+                    position: relative;
+                }
+
+                /* Swatch / Trigger Button */
+                .color-picker-trigger {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 8px 12px;
+                    background: var(--picker-bg);
+                    border: 1px solid var(--picker-border);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                    transition: all 0.2s ease;
+                    user-select: none;
+                }
+
+                .color-picker-trigger:hover {
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                }
+
+                .color-swatch-preview {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 6px;
+                    border: 1px solid rgba(0,0,0,0.15);
+                    background-color: #3b82f6;
+                }
+
+                .color-hex-text {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: var(--picker-text);
+                    font-family: monospace;
+                }
+
+                /* Popover Modal */
+                .color-picker-popover {
+                    position: absolute;
+                    top: calc(100% + 8px);
+                    left: 0;
+                    width: 350px;
+                    background: var(--picker-bg); /* Benutzt die einstellbare Hintergrundfarbe */
+                    border: 1px solid var(--picker-border);
+                    border-radius: 12px;
+                    padding: 12px;
+                    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+                    display: none;
+                    flex-direction: column;
+                    gap: 12px;
+                    z-index: 9999;
+                }
+
+                .color-picker-popover.active {
+                    display: flex;
+                }
+
+                /* 2D Saturation / Value Canvas */
+                .sat-val-area {
+                    position: relative;
+                    width: 100%;
+                    height: 150px;
+                    border-radius: 8px;
+                    background-color: red;
+                    cursor: crosshair;
+                    overflow: hidden;
+                }
+
+                .sat-white {
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(to right, #fff, rgba(255,255,255,0));
+                }
+
+                .val-black {
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(to top, #000, rgba(0,0,0,0));
+                }
+
+                .sat-val-picker {
+                    position: absolute;
+                    width: 14px;
+                    height: 14px;
+                    border: 2px solid #ffffff;
+                    border-radius: 50%;
+                    box-shadow: 0 0 4px rgba(0,0,0,0.5);
+                    transform: translate(-50%, -50%);
+                    pointer-events: none;
+                }
+
+                /* Hue Slider */
+                .hue-slider {
+                    position: relative;
+                    width: 100%;
+                    height: 12px;
+                    border-radius: 6px;
+                    background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+                    cursor: pointer;
+                }
+
+                .hue-picker {
+                    position: absolute;
+                    top: 50%;
+                    width: 16px;
+                    height: 16px;
+                    background: #ffffff;
+                    border: 2px solid #334155;
+                    border-radius: 50%;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                    transform: translate(-50%, -50%);
+                    pointer-events: none;
+                }
+
+                /* Inputs */
+                .color-inputs {
+                    display: flex;
+                    gap: 8px;
+                }
+
+                .input-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    flex: 1;
+                }
+
+                .input-group label {
+                    font-size: 10px;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                }
+
+                .input-group input {
+                    width: 100%;
+                    padding: 6px 8px;
+                    border: 1px solid var(--picker-border);
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-family: monospace;
+                    color: var(--picker-text);
+                    outline: none;
+                    background: rgba(0,0,0,0.03);
+                }
+
+                .input-group input:focus {
+                    border-color: #3b82f6;
+                    background: transparent;
+                }
+
+                /* Presets */
+                .presets-title {
+                    font-size: 10px;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                }
+
+                .presets-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 6px;
+                }
+
+                .preset-btn {
+                    height: 22px;
+                    border-radius: 4px;
+                    border: 1px solid rgba(0,0,0,0.1);
+                    cursor: pointer;
+                    transition: transform 0.1s ease;
+                }
+
+                .preset-btn:hover {
+                    transform: scale(1.08);
+                }
+            </style>
+
+            <div class="color-picker-wrapper">
+                <div class="color-picker-trigger" id="pickerTrigger">
+                    <div class="color-swatch-preview" id="swatchPreview"></div>
+                    <span class="color-hex-text" id="hexText">#3B82F6</span>
                 </div>
 
-                <!-- Hue Slider -->
-                <div class="hue-slider" id="hueSlider">
-                    <div class="hue-picker" id="huePicker"></div>
-                </div>
+                <div class="color-picker-popover" id="pickerPopover">
+                    <div class="sat-val-area" id="satValArea">
+                        <div class="sat-white"></div>
+                        <div class="val-black"></div>
+                        <div class="sat-val-picker" id="satValPicker"></div>
+                    </div>
 
-                <!-- Input Fields -->
-                <div class="color-inputs">
-                    <div class="input-group">
-                        <label>HEX</label>
-                        <input type="text" id="hexInput" value="#3B82F6" maxlength="7">
+                    <div class="hue-slider" id="hueSlider">
+                        <div class="hue-picker" id="huePicker"></div>
                     </div>
-                    <div class="input-group">
-                        <label>RGB</label>
-                        <input type="text" id="rgbInput" value="59, 130, 246" readonly>
-                    </div>
-                    <div class="input-group">
-                        <label>HSV</label>
-                        <input type="text" id="hsvInput" value="217, 76, 96" readonly>
-                    </div>
-                </div>
 
-                <!-- Color Presets -->
-                <div class="presets-title">Presets</div>
-                <div class="presets-grid">
-                    <button class="preset-btn" style="background: #ef4444;" data-color="#ef4444"></button>
-                    <button class="preset-btn" style="background: #f97316;" data-color="#f97316"></button>
-                    <button class="preset-btn" style="background: #eab308;" data-color="#eab308"></button>
-                    <button class="preset-btn" style="background: #22c55e;" data-color="#22c55e"></button>
-                    <button class="preset-btn" style="background: #06b6d4;" data-color="#06b6d4"></button>
-                    <button class="preset-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
-                    <button class="preset-btn" style="background: #a855f7;" data-color="#a855f7"></button>
-                    <button class="preset-btn" style="background: #ec4899;" data-color="#ec4899"></button>
+                    <div class="color-inputs">
+                        <div class="input-group">
+                            <label>HEX</label>
+                            <input type="text" id="hexInput" value="#3B82F6" maxlength="7">
+                        </div>
+                        <div class="input-group">
+                            <label>RGB</label>
+                            <input type="text" id="rgbInput" value="59, 130, 246" readonly>
+                        </div>
+                        <div class="input-group">
+                            <label>HSV</label>
+                            <input type="text" id="hsvInput" readonly>
+                        </div>
+                    </div>
+
+                    <div class="presets-title">Presets</div>
+                    <div class="presets-grid">
+                        <button class="preset-btn" style="background: #ef4444;" data-color="#ef4444"></button>
+                        <button class="preset-btn" style="background: #f97316;" data-color="#f97316"></button>
+                        <button class="preset-btn" style="background: #eab308;" data-color="#eab308"></button>
+                        <button class="preset-btn" style="background: #22c55e;" data-color="#22c55e"></button>
+                        <button class="preset-btn" style="background: #06b6d4;" data-color="#06b6d4"></button>
+                        <button class="preset-btn" style="background: #3b82f6;" data-color="#3b82f6"></button>
+                        <button class="preset-btn" style="background: #a855f7;" data-color="#a855f7"></button>
+                        <button class="preset-btn" style="background: #ec4899;" data-color="#ec4899"></button>
+                    </div>
                 </div>
             </div>
         `;
-        this.wrapper.classList.add("color-picker-wrapper");
 
-        this.trigger = this.wrapper.querySelector('#pickerTrigger');
-        this.popover = this.wrapper.querySelector('#pickerPopover');
-        this.swatchPreview = this.wrapper.querySelector('#swatchPreview');
-        this.hexText = this.wrapper.querySelector('#hexText');
+        this.trigger = this.shadow.querySelector('#pickerTrigger');
+        this.popover = this.shadow.querySelector('#pickerPopover');
+        this.swatchPreview = this.shadow.querySelector('#swatchPreview');
+        this.hexText = this.shadow.querySelector('#hexText');
         
-        this.satValArea = this.wrapper.querySelector('#satValArea');
-        this.satValPicker = this.wrapper.querySelector('#satValPicker');
-        this.hueSlider = this.wrapper.querySelector('#hueSlider');
-        this.huePicker = this.wrapper.querySelector('#huePicker');
+        this.satValArea = this.shadow.querySelector('#satValArea');
+        this.satValPicker = this.shadow.querySelector('#satValPicker');
+        this.hueSlider = this.shadow.querySelector('#hueSlider');
+        this.huePicker = this.shadow.querySelector('#huePicker');
         
-        this.hexInput = this.wrapper.querySelector('#hexInput');
-        this.rgbInput = this.wrapper.querySelector('#rgbInput');
-        this.hsvInput = this.wrapper.querySelector('#hsvInput');
-        this.presets = this.wrapper.querySelectorAll('.preset-btn');
+        this.hexInput = this.shadow.querySelector('#hexInput');
+        this.rgbInput = this.shadow.querySelector('#rgbInput');
+        this.hsvInput = this.shadow.querySelector('#hsvInput');
+        this.presets = this.shadow.querySelectorAll('.preset-btn');
 
         // State (HSV)
         this.hue = 217;
@@ -383,6 +393,7 @@ class ColorPicker {
         const rgb = this.hsvToRgb(this.hue, this.sat, this.val);
         const hex = this.rgbToHex(rgb.r, rgb.g, rgb.b);
 
+        this.wrapper.value = hex.toUpperCase();
         // Update UI elements
         this.swatchPreview.style.backgroundColor = hex;
         this.hexText.textContent = hex.toUpperCase();
