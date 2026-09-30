@@ -1,0 +1,36 @@
+body {
+    background-color: #000;
+    --stripes: 33.33%;
+    --size: 100%;
+}
+
+.theme[data-theme="coffee"] {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #e9c79a;
+    color: #502312;
+}
+
+.theme[data-theme="modern"] {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #181e2b;
+    color: #e0eff0;
+}
+
+.theme[data-theme="modern"] .box {
+    width: 100px;
+    aspect-ratio: 1;
+    background-image: repeating-linear-gradient(45deg, #242424 10px, #00000000 20px);
+}
+
+.theme[data-theme="coffee"] .box {
+    width: 100px;
+    aspect-ratio: 1;
+    background-image: repeating-linear-gradient(
+        45deg,
+        #242424 0px, 
+        #242424 calc(var(--stripes) / 2), 
+        #00000000 calc(var(--stripes) / 2), 
+        #00000000 var(--stripes)
+    );
+    background-size: var(--size);;
+}

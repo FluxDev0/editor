@@ -21,15 +21,9 @@ class ColorPicker {
                     box-sizing: border-box;
                     
                     /* Erlaubt das Verändern der Hintergrundfarbe von außen! */
-                    --picker-bg: #202024;
-                    --picker-text: #e8ebf0;
-                    --picker-border: #313436;
-
-                    /*
                     --picker-bg: #ffffff;
                     --picker-text: #334155;
                     --picker-border: #e2e8f0;
-                    */
                 }
 
                 *, *::before, *::after {

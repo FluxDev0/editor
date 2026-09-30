@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme" data-theme="coffee">
+    <input type="text" id="theme-name">
+    <button onclick="setTheme()">Set Theme</button>
+
+    <h1>Das ist eine Überschrift</h1>
+    <h1>NUR BUCHSTABEN!</h1>
+
+    <div class="box"></div>
+    
+    <p>Das ist ein bisschen Text</p>
+    <input type="range" min="0" max="100" step="1" onchange="document.body.style = `--stripes: ${this.value}%`; document.querySelector('#output1').innerText = this.value">
+    <p id="output1"></p>
+    <input type="range" min="0" max="200" step="1" onchange="document.body.style = `--size: ${this.value}%`; document.querySelector('#output2').innerText = this.value">
+    <p id="output2"></p>
+
+    <script src="script.js"></script>
+</body>
+</html>

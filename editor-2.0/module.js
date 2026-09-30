@@ -96,18 +96,14 @@ if (fileInput) {
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
+ 
         const reader = new FileReader();
         reader.onload = (evt) => {
             const content = evt.target.result;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(content, 'text/html');
-
-            let htmlContent = doc.body ? doc.body.innerHTML.trim() : content;
-
+ 
             // CM6: Inhalt austauschen über dispatch
             htmlEditor.dispatch({
-                changes: { from: 0, to: htmlEditor.state.doc.length, insert: htmlContent }
+                changes: { from: 0, to: htmlEditor.state.doc.length, insert: content }
             });
         };
         reader.readAsText(file);

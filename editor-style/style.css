@@ -50,3 +50,9 @@ body {
     font-size: 0.9rem;
     margin-bottom: 24px;
 }
+
+#myColorPicker {
+    --picker-bg: #202024;
+    --picker-text: #e8ebf0;
+    --picker-border: #313436;
+}
