@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import * as Y from 'https://esm.sh/yjs';
 import { WebrtcProvider } from 'https://esm.sh/y-webrtc';
     
@@ -168,4 +170,135 @@ if (btnJoin) {
             effects: collabCompartment.reconfigure(yCollab(yText, provider.awareness))
         });
     };
+}
+
+// URL deines Render.com Servers eintragen
+const RENDER_SERVER_URL = "https://if-tools-backend.onrender.com";
+const socket = io(RENDER_SERVER_URL, { autoConnect: false });
+
+let isTeacher = false;
+let currentSelectedStudentId = null;
+let isRemoteUpdate = false;
+
+// --- Namenseingabe & Start ---
+const nameModal = document.getElementById('name-modal');
+const nameInput = document.getElementById('user-name-input');
+const btnStart = document.getElementById('btn-start-session');
+
+btnStart.onclick = () => {
+    const name = nameInput.value.trim();
+    if (!name) return alert("Bitte gib einen Namen ein.");
+
+    nameModal.style.display = 'none';
+    socket.connect();
+    socket.emit('register-student', name);
+
+    // Prüfen, ob eine Lehrer-Session vorliegt (z. B. via URL-Parameter oder vorhandenem Login-Token)
+    const urlParams = new URLSearchParams(window.location.search);
+    const teacherToken = urlParams.get('token') || localStorage.getItem('teacher_token');
+
+    if (teacherToken) {
+        socket.emit('verify-teacher', teacherToken);
+    }
+};
+
+// --- Schüler-Code an Server senden bei Änderungen ---
+function onCodeChange() {
+    updatePreview();
+    if (isRemoteUpdate) return;
+
+    const currentCode = htmlEditor.state.doc.toString();
+
+    if (isTeacher && currentSelectedStudentId) {
+        // Lehrer bearbeitet den Code eines Schülers
+        socket.emit('teacher-edit-code', { studentId: currentSelectedStudentId, code: currentCode });
+    } else if (!isTeacher) {
+        // Schüler bearbeitet seinen eigenen Code
+        socket.emit('student-code-update', currentCode);
+    }
+}
+
+// Integriere onCodeChange in die CodeMirror-Extensions
+// (In deinen EditorView extensions: EditorView.updateListener.of((update) => { if(update.docChanged) onCodeChange(); }))
+
+// --- Socket Events ---
+
+// Lehrer-Authentifizierung erfolgreich
+socket.on('teacher-authenticated', (res) => {
+    if (res.success) {
+        isTeacher = true;
+        document.getElementById('teacher-panel').style.display = 'flex';
+        showToast("Erfolgreich als Lehrer verbunden!");
+    }
+});
+
+// Empfang der Liste aktiver Schüler (für den Lehrer)
+socket.on('student-list', (list) => {
+    if (!isTeacher) return;
+    const select = document.getElementById('select-student');
+    select.innerHTML = '<option value="">Schüler auswählen...</option>';
+
+    list.forEach(student => {
+        const option = document.createElement('option');
+        option.value = student.id;
+        option.textContent = student.name;
+        select.appendChild(option);
+    });
+});
+
+// Schüler auswählen (Lehrer-Aktion)
+document.getElementById('select-student').onchange = (e) => {
+    currentSelectedStudentId = e.target.value;
+    if (currentSelectedStudentId) {
+        socket.emit('teacher-select-student', currentSelectedStudentId);
+    }
+};
+
+// Empfang von Live-Code eines Schülers
+socket.on('live-code-from-student', ({ studentId, code }) => {
+    if (isTeacher && studentId === currentSelectedStudentId) {
+        applyCodeToEditor(code);
+    }
+});
+
+// Empfang von Korrekturen/Code des Lehrers (beim Schüler)
+socket.on('apply-teacher-code', (code) => {
+    if (!isTeacher) {
+        applyCodeToEditor(code);
+        showToast("Dein Lehrer hat deinen Code aktualisiert.");
+    }
+});
+
+// Code sicher in CodeMirror 6 einfügen ohne Endlosschleife
+function applyCodeToEditor(newCode) {
+    isRemoteUpdate = true;
+    htmlEditor.dispatch({
+        changes: { from: 0, to: htmlEditor.state.doc.length, insert: newCode }
+    });
+    isRemoteUpdate = false;
+}
+
+// Benachrichtigungen senden (Lehrer)
+document.getElementById('btn-send-notify').onclick = () => {
+    const msgInput = document.getElementById('notify-msg');
+    const message = msgInput.value.trim();
+    if (!currentSelectedStudentId) return alert("Bitte zuerst einen Schüler auswählen.");
+    if (!message) return;
+
+    socket.emit('send-notification', { studentId: currentSelectedStudentId, message });
+    msgInput.value = '';
+};
+
+// Benachrichtigung empfangen (Schüler)
+socket.on('notification', (msg) => {
+    showToast(`Hinweis vom Lehrer: ${msg}`);
+});
+
+function showToast(text) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = text;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
 }

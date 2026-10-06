@@ -12,11 +12,35 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
+    <!-- Namenseingabe-Modal beim Start -->
+    <div id="name-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Willkommen bei der Informatik IDE</h3>
+            <p>Bitte gib deinen Namen ein, um zu starten:</p>
+            <input type="text" id="user-name-input" placeholder="Dein Name..." style="width: 100%; margin: 10px 0;">
+            <button class="btn primary" id="btn-start-session" style="width: 100%;">Starten</button>
+        </div>
+    </div>
 
     <!-- TOP TOOLBAR -->
     <header class="toolbar">
+        <!-- Lehrer Admin-Bereich (in der Toolbar oder als Seitenleiste) -->
+        <div class="toolbar-group" id="teacher-panel" style="display: none;">
+            <span class="badge">Lehrer-Modus</span>
+            <select id="select-student">
+                <option value="">Schüler auswählen...</option>
+            </select>
+            <input type="text" id="notify-msg" placeholder="Nachricht an Schüler...">
+            <button class="btn primary" id="btn-send-notify"><i class="fa-solid fa-paper-plane"></i> Senden</button>
+        </div>
+        
+        <!-- Benachrichtigungs-Toast für Schüler -->
+        <div id="toast-container"></div>
+
         <div class="toolbar-group">
             <span style="font-weight: bold; font-family: var(--font-mono); color: var(--accent); margin-right: 10px;">
                 <i class="fa-solid fa-code"></i> Informatik IDE
