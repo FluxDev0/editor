@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // --- Collapsible Editors & Console ---
 function toggleEditor(boxId) {
     const box = document.getElementById(boxId);

@@ -20,6 +20,12 @@ let preset = "none";
 let provider = null;
 let ydoc = null;
 
+const SERVER_WS_URL = "wss://if-tools-backend.onrender.com";
+let ws = null;
+let isTeacher = false;
+let currentSelectedStudentId = null;
+let isRemoteUpdate = false;
+
 // Dynamisches Fach (Compartment) für die Yjs-Erweiterung
 const collabCompartment = new Compartment();
 
@@ -38,10 +44,28 @@ function updatePreview() {
 }
 
 // Trigger bei Textänderungen
-const onChange = () => {
+function onCodeChange() {
     clearTimeout(updateTimeout);
     updateTimeout = setTimeout(updatePreview, 500);
-};
+
+    // Verhindert das erneute Senden beim Empfang von Fremdcode
+    if (isRemoteUpdate) return;
+
+    const currentCode = htmlEditor.state.doc.toString();
+
+    if (isTeacher && currentSelectedStudentId) {
+        sendWS({
+            type: 'TEACHER_EDIT_CODE',
+            targetStudentId: currentSelectedStudentId,
+            code: currentCode
+        });
+    } else if (!isTeacher) {
+        sendWS({
+            type: 'STUDENT_CODE_UPDATE',
+            code: currentCode
+        });
+    }
+}
 
 // --- Editor Initialisierung ---
 const htmlEditor = new EditorView({
@@ -79,9 +103,9 @@ const htmlEditor = new EditorView({
     keymap.of([indentWithTab]),
     indentUnit.of("    "),
     EditorState.tabSize.of(2),
-    collabCompartment.of([]),            // Platzhalter für Yjs (wird beim Joinen befüllt)
-    EditorView.updateListener.of((update) => {
-        if (update.docChanged) onChange(); // Event-Listener für Änderungen
+    collabCompartment.of([]),
+    EditorView.updateListener.of((update) => { 
+        if (update.docChanged) onCodeChange(); 
     }),
     EditorView.lineWrapping
   ],
@@ -172,133 +196,225 @@ if (btnJoin) {
     };
 }
 
-// URL deines Render.com Servers eintragen
-const RENDER_SERVER_URL = "https://if-tools-backend.onrender.com";
-const socket = io(RENDER_SERVER_URL, { autoConnect: false });
+// --- WebSocket Schulungssystem ---
 
-let isTeacher = false;
-let currentSelectedStudentId = null;
-let isRemoteUpdate = false;
+function initWebSocket() {
+    ws = new WebSocket(SERVER_WS_URL);
 
-// --- Namenseingabe & Start ---
-const nameModal = document.getElementById('name-modal');
-const nameInput = document.getElementById('user-name-input');
-const btnStart = document.getElementById('btn-start-session');
+    ws.onopen = () => {
+        console.log("WebSocket verbunden.");
 
-btnStart.onclick = () => {
-    const name = nameInput.value.trim();
-    if (!name) return alert("Bitte gib einen Namen ein.");
+        const token = localStorage.getItem('token');
+        if (token) {
+            sendWS({ type: 'IDENTIFY', token: token });
+        }
 
-    nameModal.style.display = 'none';
-    socket.connect();
-    socket.emit('register-student', name);
+        const nameInput = document.getElementById('user-name-input');
+        const name = nameInput ? nameInput.value.trim() : 'Anonym';
+        sendWS({ type: 'REGISTER_STUDENT', name: name });
+    };
 
-    // Prüfen, ob eine Lehrer-Session vorliegt (z. B. via URL-Parameter oder vorhandenem Login-Token)
-    const urlParams = new URLSearchParams(window.location.search);
-    const teacherToken = urlParams.get('token') || localStorage.getItem('teacher_token');
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
 
-    if (teacherToken) {
-        socket.emit('verify-teacher', teacherToken);
-    }
-};
+            if (data.type === 'IS_TEACHER_CONFIRMED') {
+                isTeacher = true;
+                const panel = document.getElementById('teacher-panel');
+                if (panel) panel.style.display = 'flex';
+                showToast("Als Admin autorisiert!");
+            }
 
-// --- Schüler-Code an Server senden bei Änderungen ---
-function onCodeChange() {
-    updatePreview();
-    if (isRemoteUpdate) return;
+            if (data.type === 'STUDENT_LIST') {
+                updateStudentDropdown(data.list);
+            }
 
-    const currentCode = htmlEditor.state.doc.toString();
+            if (data.type === 'LIVE_CODE_FROM_STUDENT') {
+                if (isTeacher && data.studentId === currentSelectedStudentId) {
+                    applyCodeToEditor(data.code);
+                }
+            }
 
-    if (isTeacher && currentSelectedStudentId) {
-        // Lehrer bearbeitet den Code eines Schülers
-        socket.emit('teacher-edit-code', { studentId: currentSelectedStudentId, code: currentCode });
-    } else if (!isTeacher) {
-        // Schüler bearbeitet seinen eigenen Code
-        socket.emit('student-code-update', currentCode);
+            if (data.type === 'APPLY_TEACHER_CODE') {
+                if (!isTeacher) {
+                    applyCodeToEditor(data.code);
+                    showToast("Ein Admin bearbeitet gerade deinen Code.");
+                }
+            }
+
+            if (data.type === 'NOTIFICATION') {
+                showToast(`${data.text}`);
+            }
+
+            if (data.type === 'ERROR') {
+                showToast(`Fehler: ${data.message}`);
+            }
+
+        } catch (e) {
+            console.error("Fehler beim Verarbeiten der Nachricht:", e);
+        }
+    };
+
+    ws.onclose = () => {
+        setTimeout(initWebSocket, 3000);
+    };
+}
+
+function sendWS(data) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
     }
 }
 
-// Integriere onCodeChange in die CodeMirror-Extensions
-// (In deinen EditorView extensions: EditorView.updateListener.of((update) => { if(update.docChanged) onCodeChange(); }))
-
-// --- Socket Events ---
-
-// Lehrer-Authentifizierung erfolgreich
-socket.on('teacher-authenticated', (res) => {
-    if (res.success) {
-        isTeacher = true;
-        document.getElementById('teacher-panel').style.display = 'flex';
-        showToast("Erfolgreich als Lehrer verbunden!");
-    }
-});
-
-// Empfang der Liste aktiver Schüler (für den Lehrer)
-socket.on('student-list', (list) => {
-    if (!isTeacher) return;
-    const select = document.getElementById('select-student');
-    select.innerHTML = '<option value="">Schüler auswählen...</option>';
-
-    list.forEach(student => {
-        const option = document.createElement('option');
-        option.value = student.id;
-        option.textContent = student.name;
-        select.appendChild(option);
-    });
-});
-
-// Schüler auswählen (Lehrer-Aktion)
-document.getElementById('select-student').onchange = (e) => {
-    currentSelectedStudentId = e.target.value;
-    if (currentSelectedStudentId) {
-        socket.emit('teacher-select-student', currentSelectedStudentId);
-    }
-};
-
-// Empfang von Live-Code eines Schülers
-socket.on('live-code-from-student', ({ studentId, code }) => {
-    if (isTeacher && studentId === currentSelectedStudentId) {
-        applyCodeToEditor(code);
-    }
-});
-
-// Empfang von Korrekturen/Code des Lehrers (beim Schüler)
-socket.on('apply-teacher-code', (code) => {
-    if (!isTeacher) {
-        applyCodeToEditor(code);
-        showToast("Dein Lehrer hat deinen Code aktualisiert.");
-    }
-});
-
-// Code sicher in CodeMirror 6 einfügen ohne Endlosschleife
 function applyCodeToEditor(newCode) {
+    if (htmlEditor.state.doc.toString() === newCode) return;
     isRemoteUpdate = true;
     htmlEditor.dispatch({
         changes: { from: 0, to: htmlEditor.state.doc.length, insert: newCode }
     });
     isRemoteUpdate = false;
+    updatePreview();
 }
 
-// Benachrichtigungen senden (Lehrer)
-document.getElementById('btn-send-notify').onclick = () => {
-    const msgInput = document.getElementById('notify-msg');
-    const message = msgInput.value.trim();
-    if (!currentSelectedStudentId) return alert("Bitte zuerst einen Schüler auswählen.");
-    if (!message) return;
+// UI Steuerungs-Events
+const btnStartSession = document.getElementById('btn-start-session');
+if (btnStartSession) {
+    btnStartSession.onclick = () => {
+        const nameInput = document.getElementById('user-name-input');
+        if (!nameInput || !nameInput.value.trim()) return alert("Bitte gib deinen Namen ein.");
 
-    socket.emit('send-notification', { studentId: currentSelectedStudentId, message });
-    msgInput.value = '';
-};
+        const modal = document.getElementById('name-modal');
+        if (modal) modal.style.display = 'none';
 
-// Benachrichtigung empfangen (Schüler)
-socket.on('notification', (msg) => {
-    showToast(`Hinweis vom Lehrer: ${msg}`);
-});
+        initWebSocket();
+    };
+}
+
+function updateStudentDropdown(list) {
+    const select = document.getElementById('select-student');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Schüler wählen...</option>';
+    list.forEach(student => {
+        const option = document.createElement('option');
+        option.value = student.id;
+        option.textContent = student.name + (student.username ? ` (${student.username})` : '');
+        select.appendChild(option);
+    });
+}
+
+const selectStudent = document.getElementById('select-student');
+if (selectStudent) {
+    selectStudent.onchange = (e) => {
+        currentSelectedStudentId = e.target.value;
+        if (currentSelectedStudentId) {
+            sendWS({
+                type: 'TEACHER_SELECT_STUDENT',
+                targetStudentId: currentSelectedStudentId
+            });
+        }
+    };
+}
+
+const btnSendNotify = document.getElementById('btn-send-notify');
+if (btnSendNotify) {
+    btnSendNotify.onclick = () => {
+        const msgInput = document.getElementById('notify-msg');
+        const msg = msgInput ? msgInput.value.trim() : '';
+        if (!currentSelectedStudentId) return alert("Bitte wähle zuerst einen Schüler aus.");
+        if (!msg) return;
+
+        sendWS({
+            type: 'SEND_NOTIFICATION',
+            targetStudentId: currentSelectedStudentId,
+            message: msg
+        });
+        if (msgInput) msgInput.value = '';
+    };
+}
 
 function showToast(text) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = text;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
+}
+
+// --- Login-Steuerung für Lehrer ---
+
+const btnOpenLogin = document.getElementById('btn-open-login');
+const btnCloseLogin = document.getElementById('btn-close-login');
+const loginModal = document.getElementById('login-modal');
+const btnSubmitLogin = document.getElementById('btn-submit-login');
+const loginError = document.getElementById('login-error');
+
+if (btnOpenLogin) {
+    btnOpenLogin.onclick = () => {
+        if (loginModal) loginModal.style.display = 'flex';
+    };
+}
+
+if (btnCloseLogin) {
+    btnCloseLogin.onclick = () => {
+        if (loginModal) loginModal.style.display = 'none';
+    };
+}
+
+if (btnSubmitLogin) {
+    btnSubmitLogin.onclick = async () => {
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+
+        if (!username || !password) {
+            if (loginError) {
+                loginError.textContent = "Bitte Benutzername und Passwort eingeben.";
+                loginError.style.display = 'block';
+            }
+            return;
+        }
+
+        try {
+            // Anfragen an dein Backend senden
+            const response = await fetch('https://if-tools-backend.onrender.com/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.token) {
+                // Token im Browser-Speicher ablegen
+                localStorage.setItem('token', data.token);
+
+                if (loginError) loginError.style.display = 'none';
+                if (loginModal) loginModal.style.display = 'none';
+
+                const nameModal = document.getElementById('name-modal');
+                if (nameModal) nameModal.style.display = 'none';
+
+                // Benutzernamen im Namensfeld eintragen
+                const nameInput = document.getElementById('user-name-input');
+                if (nameInput) nameInput.value = username;
+
+                showToast("Login erfolgreich!");
+
+                // WebSocket starten & JWT-Token automatisch mit 'IDENTIFY' senden
+                initWebSocket();
+            } else {
+                if (loginError) {
+                    loginError.textContent = data.message || "Anmeldung fehlgeschlagen.";
+                    loginError.style.display = 'block';
+                }
+            }
+        } catch (err) {
+            if (loginError) {
+                loginError.textContent = "Verbindung zum Server fehlgeschlagen.";
+                loginError.style.display = 'block';
+            }
+        }
+    };
 }
