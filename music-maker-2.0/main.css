@@ -1,0 +1,156 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: sans-serif;
+    background: #0f172a;
+    color: #fff;
+}
+
+/* Haupt-Layout Container */
+.app-layout {
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Grund-Panel Styles */
+.pane {
+    background: #1e293b;
+    overflow: auto;
+    position: relative;
+}
+
+.sidebar-pane {
+    flex: 0 0 240px;
+    /* Startbreite 240px */
+    padding: 15px;
+    background: #111827;
+    border-right: 1px solid #1f2937;
+}
+
+.sidebar-section {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.main-pane {
+    flex: 1 1 0px;
+    display: flex;
+    flex-direction: column;
+    background: #0f172a;
+}
+
+.sequencer-pane {
+    flex: 1 1 0px;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+.canvas-container {
+    flex: 1;
+    overflow: auto;
+    background: #0f172a;
+    border-radius: 6px;
+}
+
+.bottom-pane {
+    flex: 0 0 180px;
+    /* Starthöhe 180px */
+    padding: 15px;
+    background: #1e293b;
+}
+
+/* Toolbar & Formular-Elemente */
+.toolbar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    align-items: center;
+    background: #1e293b;
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+
+button {
+    padding: 6px 12px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+select, input {
+    padding: 5px;
+    background: #334155;
+    color: white;
+    border: 1px solid #475569;
+    border-radius: 4px;
+}
+
+canvas {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    cursor: crosshair;
+    display: block;
+}
+
+/* --- Splitter / Gutter Styles --- */
+.gutter {
+    background-color: #334155;
+    position: relative;
+    z-index: 10;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.gutter:hover, .gutter.active {
+    background-color: #3b82f6;
+}
+
+/* Vertikaler Splitter (Breite anpassen) */
+.gutter-col {
+    width: 6px;
+    cursor: col-resize;
+}
+
+/* Horizontaler Splitter (Höhe anpassen) */
+.gutter-row {
+    height: 6px;
+    cursor: row-resize;
+}
+
+/* Cursors beim Draggen auf dem Body erzwingen */
+body.resizing-col {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+body.resizing-row {
+    cursor: row-resize !important;
+    user-select: none !important;
+}
+
+input[type="number"] {
+    appearance: textfield;
+}
+
+input[type="number"]:hover {
+    appearance: auto;
+}

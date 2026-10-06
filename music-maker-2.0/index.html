@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Multi-Track Sequencer</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div class="app-layout">
+    
+        <!-- LINKES PANEL: Sidebar / Controls -->
+        <aside id="sidebarPane" class="pane sidebar-pane">
+            <h2>Track Control</h2>
+            <div class="sidebar-section">
+                <label>Aktive Spur:
+                    <select id="trackSelect"></select>
+                </label>
+                <button id="addTrackBtn">+ Neue Spur</button>
+            </div>
+    
+            <div class="sidebar-section">
+                <h3>Song-Einstellungen</h3>
+                <label>Steps:
+                    <input type="number" id="lengthInput" value="64" min="16" max="256" step="16">
+                </label>
+                <label>Reihen:
+                    <input type="number" id="rowsInput" value="24" min="12" max="48">
+                </label>
+            </div>
+        </aside>
+    
+        <!-- VERTIKALER SPLITTER (Links <-> Rechts) -->
+        <div id="gutterSidebar" class="gutter gutter-col"></div>
+    
+        <!-- RECHTER HAUPTBEREICH (Sequencer oben + FX/Synth unten) -->
+        <main id="mainPane" class="pane main-pane">
+    
+            <!-- OBERES PANEL: Sequencer & Toolbar -->
+            <section id="sequencerPane" class="pane sequencer-pane">
+                <div class="toolbar">
+                    <button id="playBtn">▶ Play Sequence</button>
+                </div>
+    
+                <div class="canvas-container">
+                    <canvas id="gridCanvas"></canvas>
+                </div>
+            </section>
+    
+            <!-- HORIZONTALER SPLITTER (Oben <-> Unten) -->
+            <div id="gutterMain" class="gutter gutter-row"></div>
+    
+            <!-- UNTERES PANEL: Synth & FX Parameter -->
+            <section id="bottomPane" class="pane bottom-pane">
+                <h3>Synth & FX Panel</h3>
+                <p>Hier kannst du Regler für Filter, Delay, Reverb oder ADSR unterbringen.</p>
+            </section>
+    
+        </main>
+    </div>
+    
+    <script src="main.js" type="module"></script>
+</body>
+</html>
