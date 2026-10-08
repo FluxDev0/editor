@@ -59,7 +59,7 @@ html, body {
 
 .canvas-container {
     flex: 1;
-    overflow: auto;
+    overflow: hidden;
     background: #0f172a;
     border-radius: 6px;
 }
@@ -104,7 +104,7 @@ select, input {
 }
 
 canvas {
-    background: #1e293b;
+    background: #22222e;
     border: 1px solid #334155;
     border-radius: 6px;
     cursor: crosshair;

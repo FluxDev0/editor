@@ -2,6 +2,8 @@
  * Fx.js - Effekt-Kette (Distortion, Delay, Reverb, LFO)
  */
 
+import { DEFAULT_VALUES } from "./types.js";
+
 export class FXChain {
     /**
      * Constructor of the FXChiain Class
@@ -37,15 +39,7 @@ export class FXChain {
 
         // Initialisiere Standardwerte
         /** @type {import("./types.js").FXChainParameters} */
-        this.params = {
-            distortionAmount: 0,
-            delayTime: 0.3,
-            delayFeedback: 0.4,
-            delayMix: 0,
-            reverbMix: 0,
-            lfoFreq: 2,
-            lfoDepth: 0
-        };
+        this.params = DEFAULT_VALUES.FXChainParameters;
 
         this._buildGraph();
         this._generateReverbImpulse(2.0); // 2 Sekunden Nachhall-Impuls generieren

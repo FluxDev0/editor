@@ -2,13 +2,13 @@
  * Sequencer.js - Multi-Track Piano Roll / Grid Manager
  */
 
-import { Track } from "./types.js";
+import { DEFAULT_VALUES, Track } from "./types.js";
 
 export class Sequencer {
     /**
      * Constructor of the Sequencer Class
      * @param {HTMLCanvasElement} canvas canvas element of the Sequencer
-     * @param {import("./types").SequencerOptions} [options]
+     * @param {Partial<import("./types").SequencerOptions>} [options]
      */
     constructor(canvas, options = {}) {
         /** @type {HTMLCanvasElement} */
@@ -78,6 +78,18 @@ export class Sequencer {
         /** @type {number} */
         this.dragOffsetY = 0;
 
+        /** @type {boolean} */
+        this.isPanning = false;
+        /** @type {number} */
+        this.panStartX = 0;
+        /** @type {number} */
+        this.panStartY = 0;
+
+        /** @type {number} */
+        this.scrollX = 0;
+        /** @type {number} */
+        this.scrollY = 0;
+
         /** @type {number} */
         this.playheadStep = -1;
 
@@ -87,7 +99,7 @@ export class Sequencer {
 
     /**
      * Set the options of the Sequencer.
-     * @param {import("./types").SequencerOptions} options the optional options
+     * @param {Partial<import("./types").SequencerOptions>} options the optional options
      */
     setOptions(options) {
         this.bpm = options.bpm ?? 120;
@@ -200,9 +212,25 @@ export class Sequencer {
     }
 
     resize() {
-        this.canvas.width = (this.cellWidth * this.totalSteps) + this.pianoKeysWidth;
-        this.canvas.height = this.cellHeight * this.numRows;
+        const parent = this.canvas.parentElement;
+        if (parent) {
+            this.canvas.width = parent.clientWidth;
+            this.canvas.height = parent.clientHeight;
+        } else {
+            this.canvas.width = (this.cellWidth * this.totalSteps) + this.pianoKeysWidth;
+            this.canvas.height = this.cellHeight * this.numRows;
+        }
+        this.clampScroll();
         this.draw();
+    }
+
+
+    clampScroll() {
+        const maxScrollX = Math.max(0, (this.cellWidth * this.totalSteps) - (this.canvas.width - this.pianoKeysWidth));
+        const maxScrollY = Math.max(0, (this.cellHeight * this.numRows) - this.canvas.height);
+
+        this.scrollX = Math.max(0, Math.min(this.scrollX, maxScrollX));
+        this.scrollY = Math.max(0, Math.min(this.scrollY, maxScrollY));
     }
 
     /**
@@ -249,27 +277,54 @@ export class Sequencer {
     }
 
     /**
-    * Initialize all events.
-    */
-    _initEvents() {
-        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-        this.canvas.addEventListener('mousedown', (e) => this._onMouseDown(e));
-        this.canvas.addEventListener('mousemove', (e) => this._onMouseMove(e));
-        window.addEventListener('mouseup', () => this._onMouseUp());
-        window.addEventListener('keydown', (e) => { if(e.key == "Shift") this.shiftOn = true; });
-        window.addEventListener('keyup', (e) => { if(e.key == "Shift") this.shiftOn = false; });
-    }
-
-    /**
      * 
      * @param {MouseEvent} e 
      */
     _getCanvasCoords(e) {
         const rect = this.canvas.getBoundingClientRect();
+        const rawX = e.clientX - rect.left;
+        const rawY = e.clientY - rect.top;
+
         return {
-            x: e.clientX - rect.left - this.pianoKeysWidth,
-            y: e.clientY - rect.top
+            rawX,
+            rawY,
+            // x & y im echten Grid-System (inklusive Scroll-Offset)
+            gridX: rawX - this.pianoKeysWidth + this.scrollX,
+            gridY: rawY + this.scrollY
         };
+    }
+
+    _initEvents() {
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Verhindert das Browser-Autoscroll-Icon bei Mittelklick
+        this.canvas.addEventListener('auxclick', (e) => {
+            if (e.button === 1) e.preventDefault();
+        });
+
+        // Optional: Mausrad-Scrollen unterstützen
+        this.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.shiftKey) {
+                this.scrollX += e.deltaY;
+            } else {
+                this.scrollY += e.deltaY;
+            }
+            this.clampScroll();
+            this.draw();
+        }, { passive: false });
+
+        const observer = new ResizeObserver((entries) => {
+            this.resize();
+        });
+
+        observer.observe(/** @type {HTMLElement} */(this.canvas.parentElement))
+
+        this.canvas.addEventListener('mousedown', (e) => this._onMouseDown(e));
+        this.canvas.addEventListener('mousemove', (e) => this._onMouseMove(e));
+        window.addEventListener('mouseup', () => this._onMouseUp());
+        window.addEventListener('keydown', (e) => { if (e.key === "Shift") this.shiftOn = true; });
+        window.addEventListener('keyup', (e) => { if (e.key === "Shift") this.shiftOn = false; });
     }
 
     /**
@@ -277,20 +332,30 @@ export class Sequencer {
      * @param {MouseEvent} e 
      */
     _onMouseDown(e) {
-        if(this.shiftOn == true) return;
+        // MITTELKLICK (Button 1): Panning starten
+        if (e.button === 1) {
+            e.preventDefault();
+            this.isPanning = true;
+            this.panStartX = e.clientX;
+            this.panStartY = e.clientY;
+            this.canvas.style.cursor = 'grabbing';
+            return;
+        }
+
+        if (this.shiftOn) return;
 
         const activeTrack = this.getActiveTrack();
         if (!activeTrack) return;
 
-        const { x, y } = this._getCanvasCoords(e);
-        if(x < 0) return;
-        
-        const step = Math.floor(x / this.cellWidth);
-        const row = Math.floor(y / this.cellHeight);
+        const { rawX, gridX, gridY } = this._getCanvasCoords(e);
+        if (rawX < this.pianoKeysWidth) return; // Klick war auf den Piano Keys
+
+        const step = Math.floor(gridX / this.cellWidth);
+        const row = Math.floor(gridY / this.cellHeight);
 
         // Klick auf eine Note des AKTIVEN Tracks prüfen
-        const clickedNote = activeTrack.notes.find(n => 
-            n.row === row && x >= n.step * this.cellWidth && x <= (n.step + n.durationSteps) * this.cellWidth
+        const clickedNote = activeTrack.notes.find(n =>
+            n.row === row && gridX >= n.step * this.cellWidth && gridX <= (n.step + n.durationSteps) * this.cellWidth
         );
 
         // RECHTSKLICK: Note löschen
@@ -307,8 +372,8 @@ export class Sequencer {
             if (clickedNote) {
                 this.draggedNotes = [clickedNote];
                 const noteRightEdge = (clickedNote.step + clickedNote.durationSteps) * this.cellWidth;
-                
-                if (Math.abs(x - noteRightEdge) < 12) {
+
+                if (Math.abs(gridX - noteRightEdge) < 12) {
                     this.dragMode = 'resize';
                 } else {
                     this.dragMode = 'move';
@@ -316,22 +381,36 @@ export class Sequencer {
                     this.dragOffsetY = row - clickedNote.row;
                 }
             } else {
-                // Neue Note auf dem aktuellen Track erzeugen
-                this.addNote(row, step)
+                this.addNote(row, step);
             }
         }
     }
+
 
     /**
      * 
      * @param {MouseEvent} e 
      */
     _onMouseMove(e) {
-        if (!this.draggedNotes) return;
+        if (this.isPanning) {
+            const dx = e.clientX - this.panStartX;
+            const dy = e.clientY - this.panStartY;
 
-        const { x, y } = this._getCanvasCoords(e);
-        const currentStep = Math.floor(x / this.cellWidth);
-        const currentRow = Math.floor(y / this.cellHeight);
+            this.scrollX -= dx;
+            this.scrollY -= dy;
+            this.clampScroll();
+
+            this.panStartX = e.clientX;
+            this.panStartY = e.clientY;
+            this.draw();
+            return;
+        }
+
+        if (!this.draggedNotes || this.draggedNotes.length === 0) return;
+
+        const { gridX, gridY } = this._getCanvasCoords(e);
+        const currentStep = Math.floor(gridX / this.cellWidth);
+        const currentRow = Math.floor(gridY / this.cellHeight);
 
         if (this.dragMode === 'move') {
             this.draggedNotes.forEach((note) => {
@@ -340,7 +419,7 @@ export class Sequencer {
 
                 note.step = newStep;
                 note.row = newRow;
-                note.midi = this.getMidiForRow(newRow); // MIDI-Wert an neue Position anpassen!
+                note.midi = this.getMidiForRow(newRow);
             });
         } else if (this.dragMode === 'resize') {
             this.draggedNotes.forEach((note) => {
@@ -349,17 +428,19 @@ export class Sequencer {
                     note.durationSteps = newDuration;
                 }
             });
-        } else if (this.dragMode === "select") {
-            
         }
 
         this.draw();
     }
 
     _onMouseUp() {
+        if (this.isPanning) {
+            this.isPanning = false;
+            this.canvas.style.cursor = 'default';
+        }
+
         this.draggedNotes = [];
         this.dragMode = null;
-
         this.draw();
     }
 
@@ -369,8 +450,16 @@ export class Sequencer {
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
 
-        // 1. Hintergrund-Gitter
+        this.ctx.save();
+
+        this.ctx.beginPath();
+        this.ctx.rect(this.pianoKeysWidth, 0, width - this.pianoKeysWidth, height);
+        this.ctx.clip();
+
         for (let r = 0; r < this.numRows; r++) {
+            const y = (r * this.cellHeight) - this.scrollY;
+            if (y + this.cellHeight < 0 || y > height) continue;
+
             const midi = this.getMidiForRow(r);
 
             const noteIndex = Math.abs(midi) % 12;
@@ -378,45 +467,50 @@ export class Sequencer {
             const isBlackKey = noteName.includes('#');
 
             this.ctx.fillStyle = isBlackKey ? this.bgBlackKey : this.bgWhiteKey;
-            this.ctx.fillRect(0, r * this.cellHeight, width, this.cellHeight);
+            this.ctx.fillRect(this.pianoKeysWidth, y, width - this.pianoKeysWidth, this.cellHeight);
 
             this.ctx.strokeStyle = this.border4;
             this.ctx.beginPath();
-            this.ctx.moveTo(this.pianoKeysWidth, r * this.cellHeight);
-            this.ctx.lineTo(width, r * this.cellHeight);
+            this.ctx.moveTo(this.pianoKeysWidth, y);
+            this.ctx.lineTo(width, y);
             this.ctx.stroke();
         }
 
         // Vertikale Taktstrich-Linien
-        for (let s = 0; s < this.totalSteps; s++) {
-            const isBar = s % 16 === 0; // Ganzer Takt
-            const isBeat = s % 4 === 0; // Viertel-Takt
+        for (let s = 0; s <= this.totalSteps; s++) {
+            const xAxis = (s * this.cellWidth) - this.scrollX + this.pianoKeysWidth;
+            if (xAxis < this.pianoKeysWidth || xAxis > width) continue;
+
+            const isBar = s % 16 === 0;
+            const isBeat = s % 4 === 0;
 
             this.ctx.strokeStyle = isBar ? this.border1 : (isBeat ? this.border2 : this.border3);
             this.ctx.lineWidth = isBar ? 2 : (isBeat ? 1 : 0.5);
             this.ctx.beginPath();
-            const xAxis = (s * this.cellWidth)  + this.pianoKeysWidth;
             this.ctx.moveTo(xAxis, 0);
             this.ctx.lineTo(xAxis, height);
             this.ctx.stroke();
         }
 
-        // 2. Noten zeichnen (Zuerst inaktive Spuren leicht transparent, dann aktive Spur)
         this.tracks.forEach(track => {
+            
             if (track.hide) return;
             const isActive = (track.id === this.activeTrackId);
-            this.ctx.globalAlpha = isActive ? 1.0 : 0.35; // Inaktive Spuren werden leicht ausgeblendet
+            this.ctx.globalAlpha = isActive ? 1.0 : 0.35;
 
             track.notes.forEach(note => {
-                let x = (note.step * this.cellWidth + 1) + this.pianoKeysWidth;
-                let y = note.row * this.cellHeight + 1;
+                
+                let x = (note.step * this.cellWidth - this.scrollX + 1) + this.pianoKeysWidth;
+                let y = (note.row * this.cellHeight - this.scrollY + 1);
                 let w = note.durationSteps * this.cellWidth - 2;
                 let h = this.cellHeight - 2;
 
-                // Selected Notes border
-                if (this.draggedNotes.includes(note)) {
-                    const borderWidth = 1;
+                // Sichtbarkeitsprüfung
+                if (x + w < this.pianoKeysWidth || x > width || y + h < 0 || y > height) return;
 
+                if (this.draggedNotes.includes(note)) {
+                    
+                    const borderWidth = 1;
                     this.ctx.fillStyle = "#d9e2e4";
                     this.ctx.beginPath();
                     this.ctx.roundRect(x, y, w, h, 3);
@@ -434,7 +528,7 @@ export class Sequencer {
                 this.ctx.fill();
 
                 if (isActive) {
-                    // Rechter Rand als Resizer
+                    
                     this.ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
                     this.ctx.fillRect(x + w - 3, y, 2, h);
                 }
@@ -445,9 +539,14 @@ export class Sequencer {
 
         // 3. Playhead (Abspiel-Linie)
         if (this.playheadStep >= 0) {
-            this.ctx.fillStyle = '#ef4444';
-            this.ctx.fillRect(this.pianoKeysWidth + (this.playheadStep * this.cellWidth), 0, 2, height);
+            const playheadX = (this.playheadStep * this.cellWidth) - this.scrollX + this.pianoKeysWidth;
+            if (playheadX >= this.pianoKeysWidth && playheadX <= width) {
+                this.ctx.fillStyle = '#ef4444';
+                this.ctx.fillRect(playheadX, 0, 2, height);
+            }
         }
+
+        this.ctx.restore();
 
         this.renderPianoKeys();
     }
@@ -466,17 +565,28 @@ export class Sequencer {
     }
 
     renderPianoKeys() {
-        for (let r = 0; r < this.numRows; r++) {
-            const y = r * this.cellHeight;
-            const midi = this.getMidiForRow(r);
+        const { height } = this.canvas;
 
+        // Hintergrunde der Piano Keys am linken Rand
+        this.ctx.fillStyle = this.bgBlackKey;
+        this.ctx.fillRect(0, 0, this.pianoKeysWidth, height);
+
+        for (let r = 0; r < this.numRows; r++) {
+            const y = (r * this.cellHeight) - this.scrollY;
+            if (y + this.cellHeight < 0 || y > height) continue;
+
+            const midi = this.getMidiForRow(r);
             const noteIndex = Math.abs(midi) % 12;
             const noteName = this.noteNames[noteIndex];
             const octave = Math.floor(midi / 12) - 1;
             const isBlack = noteName.includes('#');
 
-            // 2. Notenname (z. B. C3, F#3) zentriert in der Zelle zeichnen
-            // Zeige schwarze Tasten nur an, wenn die Zellenhöhe groß genug ist
+            this.ctx.strokeStyle = '#2d2d3d';
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y + this.cellHeight);
+            this.ctx.lineTo(this.pianoKeysWidth, y + this.cellHeight);
+            this.ctx.stroke();
+
             if (!isBlack || this.cellHeight >= 14) {
                 this.ctx.fillStyle = isBlack ? '#8a94b8' : '#ffffff';
                 this.ctx.font = `${Math.min(11, this.cellHeight - 2)}px monospace`;
@@ -484,6 +594,13 @@ export class Sequencer {
                 this.ctx.fillText(`${noteName}${octave}`, 4, y + (this.cellHeight / 2));
             }
         }
+
+        // Vertikale Trennlinie rechts von den Piano Keys
+        this.ctx.strokeStyle = '#475569';
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.pianoKeysWidth, 0);
+        this.ctx.lineTo(this.pianoKeysWidth, height);
+        this.ctx.stroke();
     }
 
     toJSON() {

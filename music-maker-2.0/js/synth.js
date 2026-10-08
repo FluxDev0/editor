@@ -2,6 +2,8 @@
  * Synth.js - Synthesizer Modul mit ADSR, Pitch/Detune und Filter
  */
 
+import { DEFAULT_VALUES } from "./types.js";
+
 export class Synth {
     /**
      * Constructor of the Synth Class
@@ -14,22 +16,7 @@ export class Synth {
 
         // Standard-Parameter
         /** @type {import("./types").SynthParameters} */
-        this.params = {
-            type: 'sawtooth',    // sine, square, sawtooth, triangle
-            octaveShift: 0,      // -2 bis +2 Oktaven
-            detune: 0,           // in Cents (-100 bis +100)
-            
-            // ADSR Envelope (in Sekunden)
-            attack: 0.01,
-            decay: 0.2,
-            sustain: 0.5,        // Pegel 0.0 bis 1.0
-            release: 0.3,
-
-            // Filter
-            filterType: 'lowpass', // lowpass, highpass, bandpass
-            filterCutoff: 2000,    // Frequenz in Hz
-            filterResonance: 1     // Q-Faktor
-        };
+        this.params = DEFAULT_VALUES.SynthParameters;
     }
 
     // Parameter dynamisch anpassen

@@ -11,20 +11,20 @@
 
 /**
  * @typedef {Object} SequencerOptions
- * @property {number} [bpm]
- * @property {number} [totalSteps]
- * @property {number} [numRows]
- * @property {number} [baseFreq]
- * @property {number} [cellWidth]
- * @property {number} [cellHeight]
- * @property {string} [bgWhiteKey]
- * @property {string} [bgBlackKey]
- * @property {string} [border1]
- * @property {string} [border2]
- * @property {string} [border3]
- * @property {string} [border4]
- * @property {number} [pianoKeysWidth]
- * @property {string} [pianoKeysFontSize]
+ * @property {number} bpm
+ * @property {number} totalSteps
+ * @property {number} numRows
+ * @property {number} baseFreq
+ * @property {number} cellWidth
+ * @property {number} cellHeight
+ * @property {string} bgWhiteKey
+ * @property {string} bgBlackKey
+ * @property {string} border1
+ * @property {string} border2
+ * @property {string} border3
+ * @property {string} border4
+ * @property {number} pianoKeysWidth
+ * @property {string} pianoKeysFontSize
  */
 
 /**
@@ -61,6 +61,54 @@
  * @property {number} filterResonance
  */
 
+/**
+ * @typedef {Object} DefaultValues
+ * @property {FXChainParameters} FXChainParameters
+ * @property {SynthParameters} SynthParameters
+ * @property {SequencerOptions} SequencerOptions
+ */
+
+/** @type {DefaultValues} */
+export const DEFAULT_VALUES = {
+    FXChainParameters: {
+        distortionAmount: 0,
+        delayTime: 0.3,
+        delayFeedback: 0.4,
+        delayMix: 0,
+        reverbMix: 0,
+        lfoFreq: 2,
+        lfoDepth: 0
+    },
+    SynthParameters: {
+        type: "sawtooth",
+        octaveShift: 0,
+        detune: 0,
+        attack: 0.1,
+        decay: 0.2,
+        sustain: 0.5,
+        release: 0.3,
+        filterType: "lowpass",
+        filterCutoff: 2000,
+        filterResonance: 1
+    },
+    SequencerOptions: {
+        bpm: 120,
+        totalSteps: 64,
+        numRows: 24,
+        baseFreq: 130.81,
+        cellWidth: 20,
+        cellHeight: 30,
+        bgWhiteKey: "#22222e",
+        bgBlackKey: "#1a1a24",
+        border1: "#64748b",
+        border2: "#334155",
+        border3: "#1e293b",
+        border4: "#2d2d3d",
+        pianoKeysWidth: 30,
+        pianoKeysFontSize: "12px"
+    }
+}
+
 export class Track {
     /**
      * Constructor of the Track Class
@@ -85,6 +133,10 @@ export class Track {
         this.volume = 1.0;
         /** @type {SequencerNote[]} */
         this.notes = []; // Noten für diese spezifische Spur: { id, step, row, durationSteps }
+        /** @type {FXChainParameters} */
+        this.fxParams = DEFAULT_VALUES.FXChainParameters;
+        /** @type {SynthParameters} */
+        this.synthParams = DEFAULT_VALUES.SynthParameters;
     }
 }
 
