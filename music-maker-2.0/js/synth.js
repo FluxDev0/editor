@@ -43,6 +43,82 @@ export class Synth {
     }
 
     /**
+     * 
+     * @param {string} inputParentSelector 
+     */
+    setInputs(inputParentSelector) {
+        /** @type {HTMLElement | null} */
+        let input;
+        /** @type {HTMLElement[]} */
+        let inputs = [];
+
+        input = document.querySelector(inputParentSelector + " select#type");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.type = /**@type {OscillatorType}*/(/**@type {HTMLSelectElement}*/(e.target).value)
+        });
+
+        input = document.querySelector(inputParentSelector + " input#octaveShift");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.octaveShift = parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        input = document.querySelector(inputParentSelector + " input#detune");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.detune = parseFloat(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        input = document.querySelector(inputParentSelector + " input#attack");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.attack = parseFloat(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        input = document.querySelector(inputParentSelector + " input#decay");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.decay = parseFloat(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        input = document.querySelector(inputParentSelector + " input#sustain");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.sustain = parseFloat(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        input = document.querySelector(inputParentSelector + " input#release");
+        if (input) inputs.push(input);
+        input?.addEventListener("change", (e) => {
+            this.params.release = parseFloat(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        console.log(inputs);
+        inputs.forEach((i) => {
+            if (i instanceof HTMLInputElement) {
+                i.value = /**@type {number}*/(this.params[/**@type {keyof import("./types.js").SynthParameters}*/(i.id)]).toString();
+            }
+
+            if (i instanceof HTMLSelectElement) {
+                
+            }
+        });
+    }
+
+    /**
      * Spielt eine Note ab
      * @param {number} freq - Grundfrequenz der Note in Hz (z.B. 440 für A4)
      * @param {number} startTime - Startzeit im AudioContext (0 für sofort)

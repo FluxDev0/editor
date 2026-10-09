@@ -118,7 +118,7 @@ export class Sequencer {
 
         input = document.querySelector(inputParentSelector + " input#bpm");
         if (input) inputs.push(input);
-        if (input) input.addEventListener("change", (e) => {
+        input?.addEventListener("change", (e) => {
             this.bpm = parseInt(
                 /**@type {HTMLInputElement}*/(e.target).value
             );
@@ -126,7 +126,7 @@ export class Sequencer {
 
         input = document.querySelector(inputParentSelector + " input#totalSteps");
         if (input) inputs.push(input);
-        if (input) input.addEventListener("change", (e) => {
+        input?.addEventListener("change", (e) => {
             this.setTotalSteps(parseInt(
                 /**@type {HTMLInputElement}*/(e.target).value
             ));
@@ -134,7 +134,7 @@ export class Sequencer {
 
         input = document.querySelector(inputParentSelector + " input#numRows");
         if (input) inputs.push(input);
-        if (input) input.addEventListener("change", (e) => {
+        input?.addEventListener("change", (e) => {
             this.setNumRows(parseInt(
                 /**@type {HTMLInputElement}*/(e.target).value
             ));

@@ -65,11 +65,11 @@ const trackSelect = $(HTMLSelectElement, '#trackSelect');
 function updateTrackDropdown() {
     trackSelect.innerHTML = '';
     sequencer.tracks.forEach(track => {
-    const opt = document.createElement('option');
-    opt.value = track.id;
-    opt.textContent = track.name;
-    opt.selected = (track.id === sequencer.activeTrackId);
-    trackSelect.appendChild(opt);
+        const opt = document.createElement('option');
+        opt.value = track.id;
+        opt.textContent = track.name;
+        opt.selected = (track.id === sequencer.activeTrackId);
+        trackSelect.appendChild(opt);
     });
 }
 
@@ -91,12 +91,16 @@ $(HTMLElement, '#addTrackBtn').addEventListener('click', () => {
 
 function initAudio() {
     if (!audioCtx) {
-    audioCtx = new window.AudioContext();
-    fxChain = new FXChain(audioCtx);
-    fxChain.outputNode.connect(audioCtx.destination);
-    synth = new Synth(audioCtx, fxChain.inputNode);
+        audioCtx = new window.AudioContext();
+        fxChain = new FXChain(audioCtx);
+        fxChain.outputNode.connect(audioCtx.destination);
+        synth = new Synth(audioCtx, fxChain.inputNode);
+
+        synth.setInputs("#synth-inputs");
     }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
 }
 
 function schedulePlayback() {
