@@ -62,6 +62,12 @@
  */
 
 /**
+ * @typedef {Object} SynthActiveNode
+ * @property {OscillatorNode} osc
+ * @property {GainNode} gainNode
+ */
+
+/**
  * @typedef {Object} DefaultValues
  * @property {FXChainParameters} FXChainParameters
  * @property {SynthParameters} SynthParameters

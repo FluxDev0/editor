@@ -17,6 +17,9 @@ export class Synth {
         // Standard-Parameter
         /** @type {import("./types").SynthParameters} */
         this.params = DEFAULT_VALUES.SynthParameters;
+
+        /** @type {import("./types").SynthActiveNode[]} */
+        this.activeNodes = [];
     }
 
     // Parameter dynamisch anpassen
@@ -94,5 +97,30 @@ export class Synth {
         // 7. Starten und Stoppen
         osc.start(now);
         osc.stop(noteEndTime + release + 0.1);
+
+        this.activeNodes.push({ osc, gainNode });
+
+        // NEU: Räume das Array auf, wenn der Ton von selbst zu Ende gespielt hat
+        osc.onended = () => {
+            this.activeNodes = this.activeNodes.filter(n => n.osc !== osc);
+        };
+    }
+
+    // NEU: Methode zum sofortigen Stoppen aller Töne
+    stopAll() {
+        const now = this.ctx.currentTime;
+        this.activeNodes.forEach(({ osc, gainNode }) => {
+            try {
+                // Geplante Lautstärke-Änderungen abbrechen
+                gainNode.gain.cancelScheduledValues(now);
+                // Sofort stumm schalten (verhindert Knacksen)
+                gainNode.gain.setValueAtTime(0, now);
+                // Oszillator stoppen
+                osc.stop(now);
+            } catch (e) {
+                // Ignorieren, falls der Oszillator bereits gestoppt war
+            }
+        });
+        this.activeNodes = [];
     }
 }

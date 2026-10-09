@@ -17,8 +17,8 @@ let sequencer;
 const canvas = $(HTMLCanvasElement ,'canvas#gridCanvas');
 
 const sequencerOptions = {
-    totalSteps: 64, 
-    numRows: 24, 
+    totalSteps: 128, 
+    numRows: 64, 
     cellWidth: 20, 
     cellHeight: 20
 }
@@ -48,6 +48,11 @@ new Splitter({
 });
 
 let isPlaying = false;
+
+/** @type {number} */
+let playheadInterval;
+/** @type {number} */
+let playTimeout;
 
 /** @type {HTMLSelectElement} */
 const trackSelect = $(HTMLSelectElement, '#trackSelect');
@@ -123,26 +128,46 @@ $(HTMLElement, '#playBtn').addEventListener('click', () => {
         });
     });
 
-    // Playhead Animation
     let currentStep = 0;
     const stepDurationMs = sequencer.stepsToSeconds(1) * 1000;
-    const interval = setInterval(() => {
+
+    // ANGEPASST: Nutze die obere Variable statt "const interval"
+    playheadInterval = setInterval(() => {
         sequencer.playheadStep = currentStep;
         sequencer.draw();
         currentStep++;
         if (currentStep >= sequencer.totalSteps) {
-            clearInterval(interval);
+            clearInterval(playheadInterval);
             setTimeout(() => {
                 sequencer.playheadStep = -1;
-                sequencer.draw(); 
+                sequencer.draw();
             }, stepDurationMs);
         }
     }, stepDurationMs);
 
-    const timeout = setTimeout(() => {
+    playTimeout = setTimeout(() => {
         isPlaying = false;
-        clearTimeout(timeout)
+        clearTimeout(playTimeout)
     }, sequencer.stepsToSeconds(sequencer.totalSteps) * 1000);
+});
+
+$(HTMLElement, '#stopBtn').addEventListener('click', () => {
+    if (!isPlaying) return; // Wenn nichts spielt, tue nichts
+
+    isPlaying = false;
+
+    // 1. Stoppe die visuelle Playhead-Animation und das End-Timeout
+    clearInterval(playheadInterval);
+    clearTimeout(playTimeout);
+
+    // 2. Setze den Playhead zurück
+    sequencer.playheadStep = -1;
+    sequencer.draw();
+
+    // 3. Sag dem Synthesizer, dass er alle laufenden Web-Audio-Nodes abbrechen soll
+    if (synth) {
+        synth.stopAll();
+    }
 });
 
 function test1() {
