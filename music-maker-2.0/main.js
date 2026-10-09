@@ -25,6 +25,8 @@ const sequencerOptions = {
 
 sequencer = new Sequencer(canvas, sequencerOptions);
 
+sequencer.setInputs("#sequencer-inputs.sidebar-section");
+
 // 1. Links <-> Rechts Splitter (Sidebar vs. Hauptbereich)
 new Splitter({
     gutter: $(HTMLElement, '#gutterSidebar'),
@@ -47,19 +49,17 @@ new Splitter({
     onResize: () => sequencer.draw()
 });
 
+/** @type {boolean} */
 let isPlaying = false;
-
 /** @type {number} */
-let playheadInterval;
+let currentStep = 0;
 /** @type {number} */
-let playTimeout;
+let nextStepTime = 0.0;
+/** @type {number} */
+let schedulerTimer;
 
 /** @type {HTMLSelectElement} */
 const trackSelect = $(HTMLSelectElement, '#trackSelect');
-/** @type {HTMLInputElement} */
-const lengthInput = $(HTMLInputElement, '#lengthInput');
-/** @type {HTMLInputElement} */
-const rowsInput = $(HTMLInputElement, '#rowsInput');
 
 // UI Dropdown für Tracks aktualisieren
 function updateTrackDropdown() {
@@ -89,14 +89,6 @@ $(HTMLElement, '#addTrackBtn').addEventListener('click', () => {
     }
 });
 
-lengthInput.addEventListener('change', (e) => {
-    sequencer.setTotalSteps(parseInt(/** @type {HTMLInputElement} */ (e.target).value));
-});
-
-rowsInput.addEventListener('change', (e) => {
-    sequencer.setNumRows(parseInt(/** @type {HTMLInputElement} */ (e.target).value));
-});
-
 function initAudio() {
     if (!audioCtx) {
     audioCtx = new window.AudioContext();
@@ -107,64 +99,86 @@ function initAudio() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-$(HTMLElement, '#playBtn').addEventListener('click', () => {
-    if(isPlaying == true) return;
+function schedulePlayback() {
+    if (!isPlaying) return;
 
-    isPlaying = true;
+    const lookahead = 0.1; // 100 Millisekunden in die Zukunft schauen
 
-    initAudio();
-    const startTime = audioCtx.currentTime + 0.1;
+    // Solange der nächste Step innerhalb unseres kleinen Zeitfensters liegt...
+    while (nextStepTime < audioCtx.currentTime + lookahead) {
 
-    // Alle Noten aus ALLEN Spuren abspielen
-    sequencer.tracks.forEach(track => {
-        if (track.muted) return; // Stumme Spuren überspringen
+        // 1. Finde alle Noten, die GENAU in diesem Step STARTEN
+        sequencer.tracks.forEach(track => {
+            if (track.muted) return;
 
-        track.notes.forEach(note => {
-            const freq = sequencer.getFreqForRow(note.row);
-            const noteStartTime = startTime + sequencer.stepsToSeconds(note.step);
-            const duration = sequencer.stepsToSeconds(note.durationSteps);
-
-            if (note.step < sequencer.totalSteps) synth.playNote(freq, noteStartTime, duration);
+            track.notes.forEach(note => {
+                // Nur Töne auslösen, die exakt an der aktuellen Playhead-Position beginnen
+                if (note.step === currentStep) {
+                    const freq = sequencer.getFreqForRow(note.row);
+                    const duration = sequencer.stepsToSeconds(note.durationSteps);
+                    // Ton für den exakten Zeitpunkt in der nahen Zukunft planen
+                    synth.playNote(freq, nextStepTime, duration);
+                }
+            });
         });
-    });
 
-    let currentStep = 0;
-    const stepDurationMs = sequencer.stepsToSeconds(1) * 1000;
+        // 2. Playhead-Grafik exakt zur berechneten Zeit zeichnen
+        const stepToDraw = currentStep;
+        const timeUntilPlay = Math.max(0, (nextStepTime - audioCtx.currentTime) * 1000);
 
-    // ANGEPASST: Nutze die obere Variable statt "const interval"
-    playheadInterval = setInterval(() => {
-        sequencer.playheadStep = currentStep;
-        sequencer.draw();
+        setTimeout(() => {
+            if (isPlaying) {
+                sequencer.playheadStep = stepToDraw;
+                sequencer.draw();
+            }
+        }, timeUntilPlay);
+
+        // 3. Zeit und Step für den nächsten Schleifendurchlauf erhöhen
+        nextStepTime += sequencer.stepsToSeconds(1);
         currentStep++;
+
+        // 4. Stoppen, wenn das Ende des Grids erreicht ist
         if (currentStep >= sequencer.totalSteps) {
-            clearInterval(playheadInterval);
+            isPlaying = false;
             setTimeout(() => {
                 sequencer.playheadStep = -1;
                 sequencer.draw();
-            }, stepDurationMs);
+            }, timeUntilPlay + (sequencer.stepsToSeconds(1) * 1000));
+            break;
         }
-    }, stepDurationMs);
+    }
 
-    playTimeout = setTimeout(() => {
-        isPlaying = false;
-        clearTimeout(playTimeout)
-    }, sequencer.stepsToSeconds(sequencer.totalSteps) * 1000);
+    // Funktion kurz darauf erneut aufrufen, um den nächsten Puffer zu füllen
+    if (isPlaying) {
+        schedulerTimer = setTimeout(schedulePlayback, 25);
+    }
+}
+
+$(HTMLElement, '#playBtn').addEventListener('click', () => {
+    if (isPlaying) return;
+
+    initAudio(); // AudioContext ggf. starten
+    isPlaying = true;
+
+    currentStep = 0;
+    // Kurze Start-Verzögerung von 50ms, damit die Engine ruckelfrei startet
+    nextStepTime = audioCtx.currentTime + 0.05;
+
+    // Scheduling-Loop starten
+    schedulePlayback();
 });
 
 $(HTMLElement, '#stopBtn').addEventListener('click', () => {
-    if (!isPlaying) return; // Wenn nichts spielt, tue nichts
+    if (!isPlaying) return;
 
     isPlaying = false;
+    clearTimeout(schedulerTimer); // Vorausschauendes Planen abbrechen
 
-    // 1. Stoppe die visuelle Playhead-Animation und das End-Timeout
-    clearInterval(playheadInterval);
-    clearTimeout(playTimeout);
-
-    // 2. Setze den Playhead zurück
+    // Visuellen Playhead zurücksetzen
     sequencer.playheadStep = -1;
     sequencer.draw();
 
-    // 3. Sag dem Synthesizer, dass er alle laufenden Web-Audio-Nodes abbrechen soll
+    // Alle aktuell laufenden und geplanten Web-Audio-Nodes stummschalten
     if (synth) {
         synth.stopAll();
     }
@@ -182,8 +196,3 @@ function test1() {
 
     console.log("Sequencer Object after parsing: ", seq2);
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    lengthInput.value = sequencerOptions.totalSteps.toString();
-    rowsInput.value = sequencerOptions.numRows.toString();
-});

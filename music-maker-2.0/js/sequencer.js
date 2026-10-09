@@ -2,7 +2,18 @@
  * Sequencer.js - Multi-Track Piano Roll / Grid Manager
  */
 
-import { DEFAULT_VALUES, Track } from "./types.js";
+import { DEFAULT_VALUES, Track, $ } from "./types.js";
+
+/**
+ * 
+ * @template {keyof import("./types.js").SequencerOptions} K
+ * @param {K} name
+ * @param {Partial<import("./types.js").SequencerOptions>} options
+ * @returns {import("./types.js").SequencerOptions[K]}
+ */
+function optional(name, options) {
+    return options[name] ?? DEFAULT_VALUES.SequencerOptions[name];
+}
 
 export class Sequencer {
     /**
@@ -21,38 +32,36 @@ export class Sequencer {
         }
 
         /** @type {number} */
-        this.bpm = options.bpm ?? 120;
+        this.bpm = optional("bpm", options);
         /** @type {number} */
-        this.totalSteps = options.totalSteps ?? 64; // Standardmäßig z.B. 64 Steps (4 Takte)
+        this.totalSteps = optional("totalSteps", options); // Standardmäßig z.B. 64 Steps (4 Takte)
         /** @type {number} */
-        this.numRows = options.numRows ?? 24;       // Tonhöhen-Umfang (Reihen)
+        this.numRows = optional("numRows", options);       // Tonhöhen-Umfang (Reihen)
         /** @type {number} */
-        this.baseFreq = options.baseFreq ?? 130.81;  // C3 als Basis-Frequenz
+        this.baseFreq = optional("baseFreq", options);     // C3 als Basis-Frequenz
 
         /** @type {number} */
-        this.cellWidth = options.cellWidth ?? 20;
+        this.cellWidth = optional("cellWidth", options);
         /** @type {number} */
-        this.cellHeight = options.cellHeight ?? 20;
+        this.cellHeight = optional("cellHeight", options);
 
         /** @type {string} */
-        this.bgWhiteKey = options.bgWhiteKey ?? "#22222e";
+        this.bgWhiteKey = optional("bgWhiteKey", options);
         /** @type {string} */
-        this.bgBlackKey = options.bgBlackKey ?? "#1a1a24";
+        this.bgBlackKey = optional("bgBlackKey", options);
         /** @type {string} */
-        this.border1 = options.border1 ?? '#64748b';
+        this.border1 = optional("border1", options);
         /** @type {string} */
-        this.border2 = options.border2 ?? '#334155';
+        this.border2 = optional("border2", options);
         /** @type {string} */
-        this.border3 = options.border3 ?? '#1e293b';
+        this.border3 = optional("border3", options);
         /** @type {string} */
-        this.border4 = options.border4 ?? '#2d2d3d';
+        this.border4 = optional("border4", options);
 
         /** @type {number} */
-        this.pianoKeysWidth = options.pianoKeysWidth ?? 30;
+        this.pianoKeysWidth = optional("pianoKeysWidth", options);
         /** @type {string} */
-        this.pianoKeysFontSize = options.pianoKeysFontSize ?? "12px";
-
-        this.setOptions(options);
+        this.pianoKeysFontSize = optional("pianoKeysFontSize", options);
 
         // Spuren-Verwaltung (Multi-Track)
         /** @type {Track[]} */
@@ -98,29 +107,88 @@ export class Sequencer {
     }
 
     /**
-     * Set the options of the Sequencer.
-     * @param {Partial<import("./types").SequencerOptions>} options the optional options
+     * 
+     * @param {string} inputParentSelector 
      */
-    setOptions(options) {
-        this.bpm = options.bpm ?? 120;
-        this.totalSteps = options.totalSteps || 64; // Standardmäßig z.B. 64 Steps (4 Takte)
-        this.numRows = options.numRows || 24;       // Tonhöhen-Umfang (Reihen)
-        this.baseFreq = options.baseFreq || 130.81;  // C3 als Basis-Frequenz
+    setInputs(inputParentSelector) {
+        /** @type {HTMLInputElement | null} */
+        let input;
+        /** @type {HTMLInputElement[]} */
+        let inputs = [];
 
-        this.cellWidth = options.cellWidth || 20;
-        this.cellHeight = options.cellHeight || 20;
+        input = document.querySelector(inputParentSelector + " input#bpm");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.bpm = parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
 
-        this.bgWhiteKey = options.bgWhiteKey || "#22222e";
-        this.bgBlackKey = options.bgBlackKey || "#1a1a24";
-        this.border1 = options.border1 || '#64748b';
-        this.border2 = options.border2 || '#334155';
-        this.border3 = options.border3 || '#1e293b';
-        this.border4 = options.border4 || '#2d2d3d';
+        input = document.querySelector(inputParentSelector + " input#totalSteps");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.setTotalSteps(parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            ));
+        });
 
-        this.pianoKeysWidth = options.pianoKeysWidth || 30;
-        this.pianoKeysFontSize = options.pianoKeysFontSize || "12px";
+        input = document.querySelector(inputParentSelector + " input#numRows");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.setNumRows(parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            ));
+        });
 
-        if(this.tracks) this.resize();
+        input = document.querySelector(inputParentSelector + " input#baseFreq");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.baseFreq = parseFloat(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+        });
+
+        input = document.querySelector(inputParentSelector + " input#cellWidth");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.cellWidth = parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+            this.resize();
+        });
+
+        input = document.querySelector(inputParentSelector + " input#cellHeight");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.cellHeight = parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+            this.resize();
+        });
+
+        input = document.querySelector(inputParentSelector + " input#pianoKeysWidth");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.pianoKeysWidth = parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            );
+            this.resize();
+        });
+
+        input = document.querySelector(inputParentSelector + " input#pianoKeysFontSize");
+        if (input) inputs.push(input);
+        if (input) input.addEventListener("change", (e) => {
+            this.pianoKeysFontSize = parseInt(
+                /**@type {HTMLInputElement}*/(e.target).value
+            ) + "px";
+            this.resize();
+        });
+
+        document.addEventListener("DOMContentLoaded", (e) => {
+            inputs.forEach((i) => {
+                i.value = /**@type {number}*/(this[/**@type {keyof Sequencer}*/(i.id)]).toString();
+            });
+        });
     }
 
     /**
