@@ -24,10 +24,10 @@
                     <input type="number" id="totalSteps" min="16" max="256" step="16">
                 </label>
                 <label>Reihen:
-                    <input type="number" id="numRows" min="12" max="48">
+                    <input type="number" id="numRows" min="0" max="512">
                 </label>
                 <label>BPM:
-                    <input type="number" id="bpm" min="1" max="400">
+                    <input type="number" id="bpm" min="1" max="400" step="10">
                 </label>
                 <label>Zellenbreite:
                     <input type="number" id="cellWidth" min="1" max="50">
@@ -61,7 +61,7 @@
     
             <!-- UNTERES PANEL: Synth & FX Parameter -->
             <section id="bottomPane" class="pane bottom-pane">
-                <div id="synth-inputs">
+                <div class="inputs" id="synth-inputs">
                     <label>
                         <select id="type">
                             <option value="custom">Custom (nicht unterstützt)</option>
@@ -73,33 +73,51 @@
                     </label>
 
                     <label>Octave-Shift:
-                        <span id="preview">0</span><br>
-                        <input type="range" id="octaveShift" min="-10" max="10">
+                        <input type="number" id="octaveShift" min="-10" max="10" step="1">
+                        <br>
+                        <input type="range"  id="octaveShift" min="-10" max="10" step="1">
                     </label>
 
                     <label>Detune:
-                        <span id="preview">0</span><br>
-                        <input type="range" id="detune" min="0" max="100">
+                        <input type="number" id="detune" min="0" max="2" step="0.1">
+                        <br>
+                        <input type="range"  id="detune" min="0" max="2" step="0.1">
                     </label>
 
                     <label>Attack:
-                        <span id="preview">0</span><br>
-                        <input type="range" id="attack" min="0" max="100">
+                        <input type="number" id="attack" min="0" max="2" step="0.1">
+                        <br>
+                        <input type="range" id="attack" min="0" max="2" step="0.1">
                     </label>
 
                     <label>Decay:
-                        <span id="preview">0</span><br>
-                        <input type="range" id="decay" min="0" max="100">
+                        <input type="number" id="decay" min="0" max="2" step="0.1">
+                        <br>
+                        <input type="range" id="decay" min="0" max="2" step="0.1">
                     </label>
 
                     <label>Sustain:
-                        <span id="preview">0</span><br>
-                        <input type="range" id="sustain" min="0" max="100">
+                        <input type="number" id="sustain" min="0" max="1" step="0.1">
+                        <br>
+                        <input type="range" id="sustain" min="0" max="1" step="0.1">
                     </label>
 
                     <label>Release:
-                        <span id="preview">0</span><br>
-                        <input type="range" id="release" min="0" max="100">
+                        <input type="number" id="release" min="0" max="3" step="0.1">
+                        <br>
+                        <input type="range" id="release" min="0" max="3" step="0.1">
+                    </label>
+
+                    <label>Filter-Resonance:
+                        <input type="number" id="filterResonance" min="0" max="3" step="0.1">
+                        <br>
+                        <input type="range" id="filterResonance" min="0" max="3" step="0.1">
+                    </label>
+
+                    <label>Filter-Cutoff:
+                        <input type="number" id="filterCutoff" min="0" max="30000" step="10">
+                        <br>
+                        <input type="range" id="filterCutoff" min="0" max="30000" step="10">
                     </label>
                 </div>
             </section>

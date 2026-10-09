@@ -39,7 +39,7 @@ export class FXChain {
 
         // Initialisiere Standardwerte
         /** @type {import("./types.js").FXChainParameters} */
-        this.params = DEFAULT_VALUES.FXChainParameters;
+        this.params = { ...DEFAULT_VALUES.FXChainParameters };
 
         this._buildGraph();
         this._generateReverbImpulse(2.0); // 2 Sekunden Nachhall-Impuls generieren

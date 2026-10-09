@@ -140,9 +140,9 @@ export class Track {
         /** @type {SequencerNote[]} */
         this.notes = []; // Noten für diese spezifische Spur: { id, step, row, durationSteps }
         /** @type {FXChainParameters} */
-        this.fxParams = DEFAULT_VALUES.FXChainParameters;
+        this.fxParams = { ...DEFAULT_VALUES.FXChainParameters };
         /** @type {SynthParameters} */
-        this.synthParams = DEFAULT_VALUES.SynthParameters;
+        this.synthParams = { ...DEFAULT_VALUES.SynthParameters };
     }
 }
 

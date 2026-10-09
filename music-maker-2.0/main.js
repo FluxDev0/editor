@@ -75,9 +75,12 @@ function updateTrackDropdown() {
 
 updateTrackDropdown();
 
+sequencer.setActiveTrack(trackSelect.value);
+
 // Event Listener
 trackSelect.addEventListener('change', (e) => {
     sequencer.setActiveTrack(/** @type {HTMLSelectElement} */ (e.target).value);
+    updateSynthUIFromActiveTrack();
 });
 
 $(HTMLElement, '#addTrackBtn').addEventListener('click', () => {
@@ -86,6 +89,7 @@ $(HTMLElement, '#addTrackBtn').addEventListener('click', () => {
         const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
         sequencer.addTrack(name, randomColor);
         updateTrackDropdown();
+        updateSynthUIFromActiveTrack();
     }
 });
 
@@ -95,8 +99,6 @@ function initAudio() {
         fxChain = new FXChain(audioCtx);
         fxChain.outputNode.connect(audioCtx.destination);
         synth = new Synth(audioCtx, fxChain.inputNode);
-
-        synth.setInputs("#synth-inputs");
     }
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -121,7 +123,7 @@ function schedulePlayback() {
                     const freq = sequencer.getFreqForRow(note.row);
                     const duration = sequencer.stepsToSeconds(note.durationSteps);
                     // Ton für den exakten Zeitpunkt in der nahen Zukunft planen
-                    synth.playNote(freq, nextStepTime, duration);
+                    synth.playNote(freq, nextStepTime, duration, track.synthParams);
                 }
             });
         });
@@ -159,7 +161,16 @@ function schedulePlayback() {
 }
 
 $(HTMLElement, '#playBtn').addEventListener('click', () => {
-    if (isPlaying) return;
+    if (isPlaying) {
+        clearTimeout(schedulerTimer);
+
+        sequencer.playheadStep = -1;
+        sequencer.draw();
+
+        if (synth) {
+            synth.stopAll();
+        }
+    }
 
     initAudio(); // AudioContext ggf. starten
     isPlaying = true;
@@ -200,3 +211,84 @@ function test1() {
 
     console.log("Sequencer Object after parsing: ", seq2);
 }
+
+/**
+ * 
+ * @param {string} inputParentSelector 
+ */
+function setSynthInputs(inputParentSelector) {
+    /** @type {HTMLSelectElement | null} */
+    let select;
+    /** @type {HTMLInputElement | null} */
+    let input;
+    /** @type {HTMLElement[]} */
+    let inputs = [];
+
+    select = document.querySelector(inputParentSelector + " select#type");
+    if (select) inputs.push(select);
+    select?.addEventListener("change", (e) => {
+        sequencer.getActiveTrack().synthParams.type = /**@type {OscillatorType}*/(/**@type {HTMLSelectElement}*/(e.target).value)
+    });
+
+    document.querySelectorAll(inputParentSelector + ` input#octaveShift`).forEach((element) => {
+        if (!(element instanceof HTMLInputElement)) return;
+        inputs.push(element);
+        element.addEventListener("input", (e) => {
+            sequencer.getActiveTrack().synthParams.octaveShift = parseInt(
+                element.value
+            );
+            document.querySelectorAll(inputParentSelector + ` input#octaveShift`).forEach((i) => {
+                if (!(i instanceof HTMLInputElement)) return;
+                i.value = element.value
+            });
+        });
+    });
+
+    /**@type {(keyof import("./js/types.js").SynthParameters)[]}*/
+    const params = ["detune", "attack", "decay", "sustain", "release", "filterCutoff", "filterResonance"];
+
+    params.forEach((selector) => {
+        document.querySelectorAll(inputParentSelector + ` input#${selector}`).forEach((element) => {
+            if (!(element instanceof HTMLInputElement)) return;
+            inputs.push(element);
+            element.addEventListener("input", (e) => {
+                    /**@type {number}*/(sequencer.getActiveTrack().synthParams[selector]) = parseFloat(
+                element.value
+            );
+                document.querySelectorAll(inputParentSelector + ` input#${selector}`).forEach((i) => {
+                    if (!(i instanceof HTMLInputElement)) return;
+                    i.value = element.value
+                });
+            });
+        });
+    });
+
+    updateSynthUIFromActiveTrack();
+}
+
+function updateSynthUIFromActiveTrack() {
+    const activeTrack = sequencer.getActiveTrack();
+    if (!activeTrack) return;
+
+    const params = activeTrack.synthParams;
+    const container = document.querySelector('#synth-inputs');
+    if (!container) return;
+
+    // Wellenform
+    /** @type {HTMLSelectElement | null} */
+    const typeSelect = container.querySelector('select#type');
+    if (typeSelect) typeSelect.value = params.type;
+
+    // Alle Numeric/Slider-Inputs aktualisieren
+    /** @type {(keyof import('./js/types.js').SynthParameters)[]} */
+    const inputIds = ['octaveShift', 'detune', 'attack', 'decay', 'sustain', 'release', 'filterCutoff', 'filterResonance'];
+    inputIds.forEach(id => {
+        document.querySelectorAll(`input#${id}`).forEach((i) => {
+            if (!(i instanceof HTMLInputElement)) return;
+            i.value = params[id].toString();
+        });
+    });
+}
+
+setSynthInputs("#synth-inputs")
+updateSynthUIFromActiveTrack();
