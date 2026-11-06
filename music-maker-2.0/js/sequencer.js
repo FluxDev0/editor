@@ -672,7 +672,8 @@ export class Sequencer {
     }
 
     toJSON() {
-        return {
+        /** @type {JSON} */
+        const json = {
             bpm: this.bpm,
             totalSteps: this.totalSteps,
             numRows: this.numRows,
@@ -681,6 +682,7 @@ export class Sequencer {
             cellHeight: this.cellHeight, // <-- WICHTIG
             tracks: this.tracks
         };
+        return json;
     }
 
     /**
@@ -708,5 +710,9 @@ export class Sequencer {
 
         // Canvas neu an die geänderten Abmessungen anpassen & neu zeichnen
         this.resize();
+
+        console.log(parsedData);
+        console.log(parsedData.tracks);
+        console.log(this.tracks);
     }
 }

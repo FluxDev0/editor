@@ -3,6 +3,7 @@ import { FXChain } from './js/fx.js';
 import { Sequencer } from './js/sequencer.js';
 import { Splitter } from './js/splitter.js';
 import { $ } from './js/types.js';
+import { downloadFile, readJsonFile } from './js/files.js';
 
 /** @type {AudioContext} */
 let audioCtx;
@@ -197,6 +198,14 @@ $(HTMLElement, '#stopBtn').addEventListener('click', () => {
     if (synth) {
         synth.stopAll();
     }
+});
+
+$(HTMLElement, '.toolbar #downloadBtn').addEventListener('click', () => {
+    downloadFile(JSON.stringify(sequencer.toJSON()), "Music Project.music");
+});
+
+$(HTMLElement, '.toolbar #openBtn').addEventListener('change', (event) => {
+    sequencer.fromJSON(readJsonFile(event.target.files[0]));
 });
 
 function test1() {

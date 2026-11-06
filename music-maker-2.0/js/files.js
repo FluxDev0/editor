@@ -21,21 +21,27 @@ export function downloadFile(data, filename, mimeType = 'application/json') {
 
 /**
  * 
- * @param {Blob} file 
+ * @param {Blob} file
  */
 export function readJsonFile(file) {
-    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
 
-    // Warten, bis das Lesen abgeschlossen ist
-    reader.onload = (e) => {
-        const data = JSON.parse(
-            /** @type {string} */ (
-                /** @type {FileReader} */ (e.target).result
-            )
-        );
-        return data;
-    };
+        reader.onload = (e) => {
+            try {
+                // JSDoc-Typkonvertierung beibehalten
+                const data = JSON.parse(
+                    /** @type {string} */ (
+                        /** @type {FileReader} */ (e.target).result
+                    )
+                );
+                resolve(data); // Übergibt die Daten an das Promise
+            } catch (error) {
+                reject(new Error("Ungültiges JSON-Format: " + error.message));
+            }
+        };
 
-    // Lesen starten (z. B. als Text)
-    reader.readAsText(file);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(file); // Startet den Lesevorgang
+    });
 }
